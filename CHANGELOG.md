@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.5] - 2026-03-02
+
+### Fixed
+
+- **Backup & Restore**: Removed the `.db` file extension filter from the mobile file picker, as it was preventing Android users from selecting database files due to strict MIME type enforcements.
+- **Restore Target**: Corrected the target write path for database restoration on Android from `tdc-pos.db` to the intended `restore.db` to prevent silent lock failures.
+
 ## [0.18.4] - 2026-03-02
 
 ### Fixed

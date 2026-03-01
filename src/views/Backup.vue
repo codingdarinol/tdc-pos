@@ -81,8 +81,7 @@ async function runManualBackup() {
       dest = `${backupSettings.value.backup_dir}/${defaultName}`;
     } else {
       dest = await save({
-        defaultPath: defaultName,
-        filters: [{ name: 'SQLite Database', extensions: ['db'] }]
+        defaultPath: defaultName
       });
     }
 
@@ -124,7 +123,7 @@ async function restoreBackup(path) {
     const contents = await readFile(path);
 
     // Write directly to the appData directory using BaseDirectory
-    await writeFile('tdc-pos.db', contents, { baseDir: BaseDirectory.AppData });
+    await writeFile('restore.db', contents, { baseDir: BaseDirectory.AppData });
 
     await logActivity('RESTORE', 'Backup', null, `Database restored from: ${path}`);
     showStatus('Database restored! Please restart the application.');
@@ -137,8 +136,7 @@ async function restoreBackup(path) {
 
 async function handleRestoreFromFile() {
   const selected = await open({
-    multiple: false,
-    filters: [{ name: 'SQLite Database', extensions: ['db', 'bak'] }]
+    multiple: false
   });
   if (selected) {
     await restoreBackup(selected);
