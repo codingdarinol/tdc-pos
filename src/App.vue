@@ -176,7 +176,7 @@ function logout() {
       </nav>
 
       <!-- Footer Actions -->
-      <div class="p-4 sidebar-border-t space-y-2 whitespace-nowrap overflow-hidden">
+      <div class="p-4 sidebar-border-t flex flex-col gap-2 whitespace-nowrap overflow-hidden">
         <button @click="theme.showPicker = !theme.showPicker"
           class="flex items-center w-full px-4 py-2.5 rounded-xl transition-all text-sm font-bold sidebar-theme-btn">
           <span class="mr-2">🎨</span>
@@ -209,8 +209,8 @@ function logout() {
     <main class="flex-1 overflow-auto relative w-full h-full flex flex-col" style="background: var(--t-main-bg);">
 
       <!-- Top Toggle Button (Visible on Mobile AND Desktop when closed) -->
-      <div v-if="route.name !== 'Login'" class="sticky top-0 z-50 w-full flex items-center p-3 md:p-4"
-        style="padding-top: max(env(safe-area-inset-top), 0.75rem);">
+      <div v-if="route.name !== 'Login'" class="sticky top-0 z-50 w-full flex items-center p-3 md:p-4 bg-transparent"
+        style="padding-top: max(env(safe-area-inset-top, 1rem), 1rem);">
         <button @click="isSidebarOpen = !isSidebarOpen"
           class="p-2 rounded-xl shadow-sm border border-gray-200 bg-white/80 backdrop-blur-md hover:bg-white hover:shadow-md transition-all active:scale-95 flex-shrink-0"
           style="background-color: var(--t-main-card-bg); border-color: var(--t-main-card-border); color: var(--t-main-text);">

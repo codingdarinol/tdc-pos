@@ -40,6 +40,7 @@ export const useI18nStore = defineStore('i18n', {
 
         last_updated: 'Last Updated',
         locale_name: 'English',
+        fraud_checker: 'Fraud Check',
       },
       bn: {
         dashboard: 'ড্যাশবোর্ড',
@@ -76,6 +77,7 @@ export const useI18nStore = defineStore('i18n', {
         auth_status: 'ইউজার রোল',
         last_updated: 'সর্বশেষ আপডেট',
         locale_name: 'বাংলা',
+        fraud_checker: 'ফ্রড চেক',
       }
     }
   }),

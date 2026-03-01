@@ -114,7 +114,7 @@ onMounted(() => {
         <!-- Fraud Checker Button -->
         <button @click="showFraudChecker = true"
           class="flex-1 sm:flex-none justify-center bg-red-50 text-red-600 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-widest hover:bg-red-100 transition-all active:scale-95 border border-red-100 shadow-sm flex items-center gap-1.5 sm:gap-2">
-          <span>🛡️</span> Fraud Check / ফ্রড চেক
+          <span>🛡️</span> {{ i18n.t('fraud_checker') }}
         </button>
         <!-- Language Switcher -->
         <button @click="i18n.toggleLocale"

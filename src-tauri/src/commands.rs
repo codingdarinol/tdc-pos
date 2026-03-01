@@ -1338,11 +1338,9 @@ pub fn get_expenses(start_date: Option<String>, end_date: Option<String>, db: St
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     
     let mut query = "SELECT id, expense_date, category, amount, notes, created_at FROM expenses".to_string();
-    let mut has_where = false;
     
     if start_date.is_some() && end_date.is_some() {
         query.push_str(" WHERE date(expense_date) >= date(?1) AND date(expense_date) <= date(?2)");
-        has_where = true;
     }
     query.push_str(" ORDER BY expense_date DESC");
 

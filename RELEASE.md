@@ -65,6 +65,7 @@ npm run tauri android build
 ```
 
 - **Output Location**: `src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`
+- Rename the apk to include the version number. Example: `tdc-pos-v0.2.0.apk`.
 - Test the `.apk` on an emulator or physical device using `npm run tauri android dev`.
 
 ## 4. Version Control (Git)
@@ -104,7 +105,7 @@ After pushing tags, use the GitHub CLI to automate the release creation and uplo
 ```bash
 gh release create vx.x.x \
   ./src-tauri/target/release/bundle/nsis/TDC-POS_*.exe \
-  ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
+  ./src-tauri/gen/android/app/build/outputs/apk/universal/release/tdc-pos-vx.x.x.apk \
   --title "vx.x.x" \
   --notes "Release vx.x.x"
 ```

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.18.4] - 2026-03-02
+
+### Fixed
+
+- **Mobile View**: Fixed an issue in `App.vue` where the header was occasionally cut off by mobile notches, and resolved overlapping sidebar footer items on smaller screens.
+- **Terminal Warnings**: Removed an unused variable (`has_where`) in the Rust backend to prevent compiler warnings during builds.
+- **Release Documentation**: Updated `RELEASE.md` to properly document the inclusion of version numbers in Android APK filenames for GitHub releases.
+
 ## [0.18.3] - 2026-03-01
 
 ### Added
