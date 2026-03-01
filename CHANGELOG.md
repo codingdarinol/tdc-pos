@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.3] - 2026-03-01
+
+### Added
+
+- **Mobile Application Support**: The entire application layout has been refactored for mobile compatibility.
+- **Android APK Build**: Configured Tauri Android integration to natively produce `app-universal-release.apk` for the application, fixing OpenSSL cross-compilation blockages by utilizing `rustls`.
+- **Safe Area Insets**: Implemented safe-area insets (`env(safe-area-inset-top)`) and `viewport-fit=cover` to prevent the UI from conflicting with mobile notches/camera cutouts.
+
+### Changed
+
+- **UI Responsiveness**: Redesigned tables with `overflow-x-auto` to allow horizontal scrolling on mobile.
+- **Layout Flow**: Stacked previously wide UI elements vertically for narrow viewports (e.g., POS Cart, Dashboard KPI cards).
+
 ## [0.18.2] - 2026-02-22
 
 ### Changed

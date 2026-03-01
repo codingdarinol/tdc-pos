@@ -184,19 +184,19 @@ onMounted(loadUsers);
 
 <template>
     <div class="h-full flex flex-col space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col sm:flex-row flex-wrap sm:justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div>
-                <h1 class="text-3xl font-black text-gray-900 tracking-tight">User Management</h1>
-                <p class="text-gray-400 text-sm font-medium">Manage accounts, roles & security</p>
+                <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">User Management</h1>
+                <p class="text-xs sm:text-sm text-gray-400 font-medium">Manage accounts, roles & security</p>
             </div>
-            <div class="flex gap-3">
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                 <!-- Self password change button  -->
                 <button @click="openPasswordModal(auth.user, true)"
-                    class="bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 text-gray-600 px-5 py-2.5 rounded-xl font-bold text-sm transition-all active:scale-95 shadow-sm">
+                    class="w-full sm:w-auto justify-center bg-white border border-gray-200 hover:border-blue-500 hover:text-blue-600 text-gray-600 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all active:scale-95 shadow-sm flex items-center gap-2">
                     🔑 Change My Password
                 </button>
                 <button v-if="auth.canManageUsers" @click="showAddModal = true"
-                    class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all font-bold text-sm active:scale-95">
+                    class="w-full sm:w-auto justify-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl shadow-lg shadow-blue-500/20 transition-all font-bold text-xs sm:text-sm active:scale-95 flex items-center gap-2">
                     + Add User
                 </button>
             </div>
@@ -245,7 +245,7 @@ onMounted(loadUsers);
                             <td class="px-6 py-4 text-xs font-mono text-gray-400">{{ user.created_at || '-' }}</td>
                             <td class="px-6 py-4 text-right">
                                 <div
-                                    class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    class="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                     <!-- Super admin can change any user's password -->
                                     <button v-if="auth.isSuperAdmin" @click="openPasswordModal(user, false)"
                                         class="text-[10px] font-black text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg uppercase tracking-widest transition-colors">

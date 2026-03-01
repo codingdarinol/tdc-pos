@@ -149,55 +149,60 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
       <div>
-        <h1 class="text-3xl font-black text-gray-900 tracking-tight">Reports & Analytics</h1>
-        <p class="text-gray-400 text-sm font-medium">Comprehensive business intelligence</p>
+        <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Reports & Analytics</h1>
+        <p class="text-xs sm:text-sm text-gray-400 font-medium">Comprehensive business intelligence</p>
       </div>
       <button @click="exportPDF"
         :disabled="(currentTab === 'sales' && filteredSales.length === 0) || (currentTab === 'inventory' && filteredInventory.length === 0)"
-        class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-2.5 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 font-bold text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+        class="w-full sm:w-auto justify-center bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-4 sm:px-6 py-2.5 rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center gap-2 font-bold text-sm transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
         <span>📄</span> Export PDF
       </button>
     </div>
 
     <!-- Controls Bar -->
     <div
-      class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 justify-between items-center">
+      class="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
       <!-- Tabs -->
-      <div class="flex bg-gray-100 p-1 rounded-xl">
+      <div class="flex bg-gray-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto">
         <button @click="currentTab = 'sales'; searchQuery = ''; loadReport()"
           :class="{ 'bg-white shadow text-blue-600': currentTab === 'sales', 'text-gray-500 hover:text-gray-700': currentTab !== 'sales' }"
-          class="px-5 py-2 rounded-lg transition-all font-black text-xs uppercase tracking-widest">
+          class="flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg transition-all font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
           Sales & Profit
         </button>
         <button @click="currentTab = 'inventory'; searchQuery = ''; loadReport()"
           :class="{ 'bg-white shadow text-purple-600': currentTab === 'inventory', 'text-gray-500 hover:text-gray-700': currentTab !== 'inventory' }"
-          class="px-5 py-2 rounded-lg transition-all font-black text-xs uppercase tracking-widest">
+          class="flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg transition-all font-black text-[10px] sm:text-xs uppercase tracking-widest whitespace-nowrap">
           Inventory
         </button>
       </div>
 
-      <!-- Search -->
-      <div class="relative w-full md:w-64">
-        <span class="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
-        <input v-model="searchQuery" type="text" placeholder="Search..."
-          class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 transition-all">
-      </div>
-
-      <!-- Date Range (Sales only) -->
-      <div v-if="currentTab === 'sales'" class="flex flex-wrap gap-2 items-center">
-        <div class="flex bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
-          <button
-            v-for="p in [{ label: 'Today', key: 'today' }, { label: 'Week', key: 'week' }, { label: 'Month', key: 'month' }, { label: 'Year', key: 'year' }, { label: 'All', key: 'all' }]"
-            :key="p.key" @click="setDatePreset(p.key)"
-            class="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 text-gray-500 transition-colors border-r border-gray-200 last:border-r-0">
-            {{ p.label }}
-          </button>
+      <!-- Search and Date Filter Container -->
+      <div class="flex flex-col sm:flex-row gap-3 w-full xl:w-auto flex-wrap">
+        <!-- Search -->
+        <div class="relative w-full sm:w-64">
+          <span class="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
+          <input v-model="searchQuery" type="text" placeholder="Search..."
+            class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-gray-50 transition-all">
         </div>
-        <input v-model="startDate" type="date" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-gray-50">
-        <span class="text-gray-300 text-xs font-bold">→</span>
-        <input v-model="endDate" type="date" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-gray-50">
-        <button @click="loadReport"
-          class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 text-xs font-bold transition-colors active:scale-95">Go</button>
+
+        <!-- Date Range (Sales only) -->
+        <div v-if="currentTab === 'sales'" class="flex flex-col sm:flex-row flex-wrap gap-2 items-start sm:items-center w-full sm:w-auto">
+          <div class="flex bg-gray-50 border border-gray-200 rounded-xl overflow-x-auto w-full sm:w-auto">
+            <button
+              v-for="p in [{ label: 'Today', key: 'today' }, { label: 'Week', key: 'week' }, { label: 'Month', key: 'month' }, { label: 'Year', key: 'year' }, { label: 'All', key: 'all' }]"
+              :key="p.key" @click="setDatePreset(p.key)"
+              class="flex-1 sm:flex-none px-3 py-1.5 text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 hover:text-blue-600 text-gray-500 transition-colors border-r border-gray-200 last:border-r-0 whitespace-nowrap">
+              {{ p.label }}
+            </button>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input v-model="startDate" type="date" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-gray-50 flex-1 sm:flex-none">
+            <span class="text-gray-300 text-xs font-bold">→</span>
+            <input v-model="endDate" type="date" class="border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-gray-50 flex-1 sm:flex-none">
+            <button @click="loadReport"
+              class="bg-blue-600 text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 text-xs font-bold transition-colors active:scale-95">Go</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -238,29 +243,29 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-if="currentTab === 'inventory'" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-      <div class="bg-purple-50 border border-purple-100 p-4 rounded-2xl text-left">
-        <div class="text-[10px] font-black text-purple-500 uppercase tracking-widest">Cost Value</div>
-        <div class="text-xl font-black text-purple-800 mt-1">{{ currencySymbol }}{{
+    <div v-if="currentTab === 'inventory'" class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div class="bg-purple-50 border border-purple-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
+        <div class="text-[9px] sm:text-[10px] font-black text-purple-500 uppercase tracking-widest truncate">Cost Value</div>
+        <div class="text-lg sm:text-xl font-black text-purple-800 mt-1 truncate">{{ currencySymbol }}{{
           totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
       </div>
-      <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-left">
-        <div class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Retail Value</div>
-        <div class="text-xl font-black text-blue-800 mt-1">{{ currencySymbol }}{{
+      <div class="bg-blue-50 border border-blue-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
+        <div class="text-[9px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest truncate">Retail Value</div>
+        <div class="text-lg sm:text-xl font-black text-blue-800 mt-1 truncate">{{ currencySymbol }}{{
           totalRetailValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
       </div>
-      <div class="bg-green-50 border border-green-100 p-4 rounded-2xl text-left">
-        <div class="text-[10px] font-black text-green-500 uppercase tracking-widest">Potential Profit</div>
-        <div class="text-xl font-black text-green-800 mt-1">{{ currencySymbol }}{{
+      <div class="col-span-2 sm:col-span-1 bg-green-50 border border-green-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
+        <div class="text-[9px] sm:text-[10px] font-black text-green-500 uppercase tracking-widest truncate">Potential Profit</div>
+        <div class="text-lg sm:text-xl font-black text-green-800 mt-1 truncate">{{ currencySymbol }}{{
           totalPotentialProfit.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
       </div>
-      <div class="bg-red-50 border border-red-100 p-4 rounded-2xl text-left">
-        <div class="text-[10px] font-black text-red-500 uppercase tracking-widest">Out of Stock</div>
-        <div class="text-xl font-black text-red-800 mt-1">{{ outOfStockCount }}</div>
+      <div class="bg-red-50 border border-red-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
+        <div class="text-[9px] sm:text-[10px] font-black text-red-500 uppercase tracking-widest truncate">Out of Stock</div>
+        <div class="text-lg sm:text-xl font-black text-red-800 mt-1 truncate">{{ outOfStockCount }}</div>
       </div>
-      <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-left">
-        <div class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Low Stock</div>
-        <div class="text-xl font-black text-amber-800 mt-1">{{ lowStockCount }}</div>
+      <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
+        <div class="text-[9px] sm:text-[10px] font-black text-amber-500 uppercase tracking-widest truncate">Low Stock</div>
+        <div class="text-lg sm:text-xl font-black text-amber-800 mt-1 truncate">{{ lowStockCount }}</div>
       </div>
     </div>
 

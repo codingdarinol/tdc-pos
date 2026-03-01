@@ -57,10 +57,10 @@ watch(messages, () => {
 </script>
 
 <template>
-    <div class="flex h-[calc(100vh-theme('spacing.16'))] bg-gray-50 border rounded-xl overflow-hidden shadow-sm"
-        style="height: calc(100vh - 100px);">
+    <div class="flex md:flex-row h-[calc(100dvh-120px)] md:h-[calc(100vh-theme('spacing.16'))] bg-gray-50 border rounded-xl overflow-hidden shadow-sm">
         <!-- Sidebar -->
-        <div class="w-64 bg-white border-r flex flex-col h-full">
+        <div class="w-full md:w-64 bg-white md:border-r flex flex-col h-full shrink-0"
+             :class="currentConversationId ? 'hidden md:flex' : 'flex'">
             <div class="p-4 border-b">
                 <button @click="createNew"
                     class="w-full bg-blue-600 text-white rounded-lg px-4 py-2 font-bold hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
@@ -82,7 +82,16 @@ watch(messages, () => {
         </div>
 
         <!-- Main Chat Area -->
-        <div class="flex-1 flex flex-col h-full bg-white">
+        <div class="flex-1 flex flex-col h-full bg-white relative"
+             :class="currentConversationId ? 'flex' : 'hidden md:flex'">
+            <!-- Mobile Header Back Button -->
+            <div v-if="currentConversationId" class="md:hidden border-b p-3 flex items-center gap-2 bg-gray-50 shadow-sm z-10 shrink-0">
+                <button @click="currentConversationId = null" class="flex items-center gap-1 text-gray-600 hover:text-gray-900 font-bold px-2 py-1 rounded bg-white border border-gray-200 shadow-sm transition-colors text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Back
+                </button>
+                <div class="flex-1 truncate font-bold text-gray-800 text-sm ml-2">Chat</div>
+            </div>
             <div v-if="!currentConversationId"
                 class="flex-1 flex items-center justify-center text-gray-400 flex-col opacity-50">
                 <div class="text-6xl mb-4">🤖</div>
@@ -90,10 +99,10 @@ watch(messages, () => {
             </div>
             <template v-else>
                 <!-- Messages -->
-                <div class="flex-1 overflow-y-auto p-6 space-y-6" ref="messagesContainer">
+                <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6" ref="messagesContainer">
                     <div v-for="msg in messages" :key="msg.id" class="flex w-full"
                         :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
-                        <div class="max-w-[85%] rounded-2xl px-5 py-3 shadow-sm border"
+                        <div class="max-w-[95%] sm:max-w-[85%] rounded-2xl px-4 py-3 shadow-sm border"
                             :class="msg.sender === 'user' ? 'bg-blue-600 text-white rounded-tr-none border-transparent' : 'bg-gray-50 border-gray-100 rounded-tl-none text-gray-800'">
                             <div class="text-[10px] uppercase font-bold tracking-wider mb-1 opacity-70 flex justify-between gap-4"
                                 :class="msg.sender === 'user' ? 'text-blue-100' : 'text-gray-500'">

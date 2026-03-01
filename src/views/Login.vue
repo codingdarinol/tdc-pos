@@ -85,16 +85,16 @@ async function handleSetup() {
 
         <!-- Setup Mode (First Installation) -->
         <div v-else-if="isSetupMode"
-            class="max-w-md w-full space-y-6 bg-white p-10 rounded-3xl shadow-2xl animate-in fade-in duration-500">
+            class="max-w-md w-full space-y-5 sm:space-y-6 bg-white p-6 sm:p-10 rounded-3xl shadow-2xl animate-in fade-in duration-500 my-4">
             <div class="text-center">
                 <div
-                    class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white w-20 h-20 rounded-2xl flex items-center justify-center text-4xl font-black shadow-lg shadow-emerald-500/30 mx-auto">
+                    class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black shadow-lg shadow-emerald-500/30 mx-auto">
                     TDC
                 </div>
-                <h2 class="mt-6 text-2xl font-black text-gray-900 tracking-tight">
+                <h2 class="mt-4 sm:mt-6 text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
                     Welcome to TDC-POS
                 </h2>
-                <p class="mt-2 text-sm text-gray-500">
+                <p class="mt-2 text-xs sm:text-sm text-gray-500">
                     Create your Super Admin account to get started
                 </p>
                 <div class="mt-3 flex items-center justify-center gap-2">
@@ -142,16 +142,16 @@ async function handleSetup() {
 
         <!-- Normal Login Mode -->
         <div v-else
-            class="max-w-md w-full space-y-6 bg-white p-10 rounded-3xl shadow-2xl animate-in fade-in duration-500">
+            class="max-w-md w-full space-y-5 sm:space-y-6 bg-white p-6 sm:p-10 rounded-3xl shadow-2xl animate-in fade-in duration-500 my-4">
             <div class="text-center">
                 <div
-                    class="bg-blue-600 text-white w-20 h-20 rounded-2xl flex items-center justify-center text-4xl font-black shadow-lg shadow-blue-500/30 mx-auto">
+                    class="bg-blue-600 text-white w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl font-black shadow-lg shadow-blue-500/30 mx-auto">
                     TDC
                 </div>
-                <h2 class="mt-6 text-2xl font-black text-gray-900 tracking-tight">
+                <h2 class="mt-4 sm:mt-6 text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
                     Welcome back
                 </h2>
-                <p class="mt-2 text-sm text-gray-500">
+                <p class="mt-2 text-xs sm:text-sm text-gray-500">
                     Sign in to manage your Point of Sale
                 </p>
             </div>

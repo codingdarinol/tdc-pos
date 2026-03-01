@@ -244,7 +244,7 @@ onMounted(() => {
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
       <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Products</h1>
       <button @click="openModal()"
-        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition text-sm">
+        class="w-full sm:w-auto justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-2">
         + Add Product
       </button>
     </div>
@@ -311,9 +311,9 @@ onMounted(() => {
 
     <!-- Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-5 relative max-h-[90vh] flex flex-col">
-        <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">✕</button>
-        <h2 class="text-xl font-bold mb-4 text-gray-800 shrink-0">{{ isEditing ? 'Edit Product' : 'Add New Product' }}
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col my-4">
+        <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">✕</button>
+        <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 shrink-0 pr-8">{{ isEditing ? 'Edit Product' : 'Add New Product' }}
         </h2>
 
         <div class="overflow-y-auto flex-1 pr-1">

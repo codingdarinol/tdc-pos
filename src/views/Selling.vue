@@ -411,8 +411,11 @@ onMounted(() => {
 
       <!-- Right: Cart -->
       <div
-        class="w-full lg:w-96 flex flex-col bg-white rounded-lg shadow overflow-hidden flex-shrink-0 max-h-[50vh] lg:max-h-full">
-        <div class="p-3 border-b bg-gray-50 font-bold text-gray-700 text-sm">Cart ({{ cart.length }} items)</div>
+        class="w-full xl:w-96 flex flex-col bg-white rounded-lg shadow overflow-hidden flex-shrink-0 max-h-[50vh] xl:max-h-full">
+        <div class="p-3 border-b bg-gray-50 font-bold text-gray-700 text-sm flex justify-between items-center">
+            <span>Cart</span>
+            <span class="bg-gray-200 px-2 py-0.5 rounded text-xs">{{ cart.length }} items</span>
+        </div>
 
         <div class="flex-1 overflow-y-auto p-3 space-y-3">
           <div v-for="(item, index) in cart" :key="item.product_id" class="border border-gray-100 rounded-lg p-3 group">

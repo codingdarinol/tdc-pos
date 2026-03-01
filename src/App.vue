@@ -70,18 +70,20 @@ function logout() {
     -->
     <aside v-if="route.name !== 'Login'" :class="[
       'flex flex-col shadow-xl z-40 sidebar-shell transition-all duration-300 ease-in-out',
-      isMobile ? 'fixed inset-y-0 left-0 w-72' : 'relative',
+      isMobile ? 'fixed inset-y-0 left-0 w-64' : 'relative',
       isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0',
       !isMobile && !isSidebarOpen ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'
     ]">
       <!-- Header -->
-      <div class="p-6 flex items-center justify-between sidebar-border-b">
+      <div class="p-6 flex items-center justify-between sidebar-border-b"
+        style="padding-top: max(env(safe-area-inset-top), 1.5rem);">
         <div class="flex items-center space-x-3">
           <div
             class="w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl text-white shadow-lg sidebar-logo flex-shrink-0">
             T
           </div>
-          <h1 class="text-xl font-black tracking-tight uppercase italic sidebar-text whitespace-nowrap">TDC-POS</h1>
+          <h1 class="text-lg sm:text-xl font-black tracking-tight uppercase italic sidebar-text whitespace-nowrap">
+            TDC-POS</h1>
         </div>
         <!-- Mobile Close Button -->
         <button v-if="isMobile" @click="isSidebarOpen = false" class="text-gray-400 hover:text-white">
@@ -207,9 +209,10 @@ function logout() {
     <main class="flex-1 overflow-auto relative w-full h-full flex flex-col" style="background: var(--t-main-bg);">
 
       <!-- Top Toggle Button (Visible on Mobile AND Desktop when closed) -->
-      <div v-if="route.name !== 'Login'" class="sticky top-0 z-10 w-full flex items-center p-4">
+      <div v-if="route.name !== 'Login'" class="sticky top-0 z-50 w-full flex items-center p-3 md:p-4"
+        style="padding-top: max(env(safe-area-inset-top), 0.75rem);">
         <button @click="isSidebarOpen = !isSidebarOpen"
-          class="p-2 rounded-xl shadow-sm border border-gray-200 bg-white/80 backdrop-blur-md text-gray-700 hover:bg-white hover:shadow-md transition-all active:scale-95"
+          class="p-2 rounded-xl shadow-sm border border-gray-200 bg-white/80 backdrop-blur-md hover:bg-white hover:shadow-md transition-all active:scale-95 flex-shrink-0"
           style="background-color: var(--t-main-card-bg); border-color: var(--t-main-card-border); color: var(--t-main-text);">
           <svg v-if="!isSidebarOpen" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -218,12 +221,13 @@ function logout() {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
           </svg>
         </button>
-        <div class="ml-4 font-bold text-lg md:text-xl lg:hidden text-gray-800" style="color: var(--t-main-text);">
+        <div class="ml-3 sm:ml-4 font-bold text-base sm:text-lg md:text-xl lg:hidden truncate"
+          style="color: var(--t-main-text);">
           {{ route.name }}
         </div>
       </div>
 
-      <div class="flex-1 px-4 pb-4 md:px-8 md:pb-8 w-full max-w-[1920px] mx-auto">
+      <div class="flex-1 px-3 pb-3 md:px-8 md:pb-8 w-full max-w-[1920px] mx-auto overflow-y-auto">
         <RouterView />
       </div>
     </main>

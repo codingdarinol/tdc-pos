@@ -76,14 +76,14 @@ onMounted(() => {
 
 <template>
     <div class="h-full flex flex-col space-y-6">
-        <div class="flex justify-between items-center">
-            <h1 class="text-3xl font-bold text-gray-800">Available Stock</h1>
-            <button @click="loadStock" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Refresh</button>
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Available Stock</h1>
+            <button @click="loadStock" class="text-blue-600 hover:text-blue-800 text-sm font-medium w-full sm:w-auto text-left sm:text-right">Refresh Data</button>
         </div>
 
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-4">
+        <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-gray-100 mb-2 sm:mb-4">
             <input v-model="searchQuery" type="text" placeholder="Search product by name or SKU..."
-                class="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm sm:text-base focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col">

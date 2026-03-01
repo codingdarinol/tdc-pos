@@ -380,7 +380,7 @@ onMounted(() => {
 
       <!-- Right: Buying Cart & Details -->
       <div
-        class="w-full lg:w-[450px] flex flex-col bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex-shrink-0 max-h-[60vh] lg:max-h-full">
+        class="w-full xl:w-[450px] flex flex-col bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex-shrink-0 max-h-[60vh] xl:max-h-full">
         <div
           class="p-4 border-b bg-gray-900 text-white font-black text-xs uppercase tracking-widest flex justify-between items-center">
           <span>Purchase Cart</span>
@@ -389,7 +389,7 @@ onMounted(() => {
 
         <!-- Supplier & Invoice Info -->
         <div class="p-4 border-b bg-gray-50/50 space-y-4 text-left">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Supplier
                 Name</label>
@@ -403,7 +403,7 @@ onMounted(() => {
                 class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all shadow-sm">
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Phone
                 Number</label>

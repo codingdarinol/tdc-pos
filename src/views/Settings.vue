@@ -100,13 +100,13 @@ onMounted(() => {
 
 <template>
   <div class="max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Settings</h1>
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6">Settings</h1>
 
-    <div class="bg-white rounded-xl shadow border border-gray-100 p-8 space-y-8">
+    <div class="bg-white rounded-xl shadow border border-gray-100 p-4 sm:p-8 space-y-6 sm:space-y-8">
 
       <!-- Store Info Section -->
       <div>
-        <h2 class="text-xl font-bold text-gray-700 mb-6 border-b pb-2">Store Information</h2>
+        <h2 class="text-lg sm:text-xl font-bold text-gray-700 mb-4 sm:mb-6 border-b pb-2">Store Information</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
@@ -137,7 +137,7 @@ onMounted(() => {
 
       <!-- Config Section -->
       <div>
-        <h2 class="text-xl font-bold text-gray-700 mb-6 border-b pb-2">Configuration</h2>
+        <h2 class="text-lg sm:text-xl font-bold text-gray-700 mb-4 sm:mb-6 border-b pb-2">Configuration</h2>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
@@ -155,7 +155,7 @@ onMounted(() => {
 
         <!-- AI Settings Section -->
         <div>
-          <h2 class="text-xl font-bold text-gray-700 mb-6 border-b pb-2 flex items-center gap-2">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-700 mb-4 sm:mb-6 border-b pb-2 flex items-center gap-2">
             <span>🤖</span> AI Configuration
           </h2>
 
@@ -181,7 +181,7 @@ onMounted(() => {
             <div v-else></div> <!-- Spacer -->
 
             <button @click="saveSettings" :disabled="loading"
-              class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition disabled:opacity-50">
+              class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 sm:py-3 px-6 sm:px-8 rounded-lg shadow-lg transition disabled:opacity-50 w-full sm:w-auto text-sm sm:text-base">
               {{ loading ? 'Saving...' : 'Save Settings' }}
             </button>
           </div>
@@ -192,12 +192,12 @@ onMounted(() => {
     </div>
 
     <!-- Database Cleanup (Super Admin Only) -->
-    <div v-if="auth.isSuperAdmin" class="mt-8 bg-white rounded-xl shadow border border-red-200 p-8">
-      <h2 class="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
+    <div v-if="auth.isSuperAdmin" class="mt-6 sm:mt-8 bg-white rounded-xl shadow border border-red-200 p-4 sm:p-8">
+      <h2 class="text-lg sm:text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
         <span>⚠️</span> Database Cleanup
       </h2>
-      <div class="bg-red-50 border border-red-100 rounded-xl p-6">
-        <p class="text-sm text-red-700 mb-4 font-medium">
+      <div class="bg-red-50 border border-red-100 rounded-xl p-4 sm:p-6">
+        <p class="text-xs sm:text-sm text-red-700 mb-4 font-medium">
           Select data to permanently delete. This action cannot be undone.
         </p>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -237,10 +237,10 @@ onMounted(() => {
           </label>
         </div>
 
-        <div class="flex justify-between items-center">
-          <span class="text-sm font-bold text-green-600">{{ cleanupMsg }}</span>
+        <div class="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 sm:gap-0 mt-4 sm:mt-0">
+          <span class="text-xs sm:text-sm font-bold text-green-600 order-2 sm:order-1">{{ cleanupMsg }}</span>
           <button @click="handleCleanup"
-            class="bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-6 rounded-lg shadow-lg transition transform active:scale-95 flex items-center gap-2">
+            class="w-full sm:w-auto justify-center bg-red-600 hover:bg-red-700 text-white font-black py-2.5 px-6 rounded-lg shadow-lg transition transform active:scale-95 flex items-center gap-2 text-sm sm:text-base order-1 sm:order-2">
             <span>🗑️</span> Clean Database
           </button>
         </div>

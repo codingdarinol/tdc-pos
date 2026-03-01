@@ -47,7 +47,9 @@ Ensure `src-tauri/tauri.conf.json` has the correct `productName` and `identifier
 
 ## 3. Build Application
 
-Generate the production executable and installer.
+Generate the production executable, installer, and mobile packages.
+
+### 3.1 Windows Desktop (EXE)
 
 ```bash
 npm run tauri build
@@ -55,6 +57,15 @@ npm run tauri build
 
 - **Output Location**: `src-tauri/target/release/bundle/nsis/` (for Windows installer `.exe`)
 - Test the generated `.exe` on a clean environment if possible to ensure offline functionality works.
+
+### 3.2 Android Mobile (APK/AAB)
+
+```bash
+npm run tauri android build
+```
+
+- **Output Location**: `src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk`
+- Test the `.apk` on an emulator or physical device using `npm run tauri android dev`.
 
 ## 4. Version Control (Git)
 
@@ -88,10 +99,12 @@ git push origin --tags
 
 ### 4.4 Publish GitHub Release
 
-After pushing tags, use the GitHub CLI to automate the release creation and upload the generated installer:
+After pushing tags, use the GitHub CLI to automate the release creation and upload the generated Windows installer and Android APK:
 
 ```bash
-gh release create vx.x.x ./src-tauri/target/release/bundle/nsis/TDC-POS_x.x.x_x64-setup.exe \
+gh release create vx.x.x \
+  ./src-tauri/target/release/bundle/nsis/TDC-POS_*.exe \
+  ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk \
   --title "vx.x.x" \
   --notes "Release vx.x.x"
 ```
