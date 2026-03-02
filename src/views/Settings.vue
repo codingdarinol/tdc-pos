@@ -23,6 +23,7 @@ const settings = reactive({
   store_phone: "",
   store_email: "",
   currency_symbol: "Rp",
+  receipt_paper_width: "80",
   tax_rate: "0",
   google_ai_key: ""
 });
@@ -148,6 +149,15 @@ onMounted(() => {
             <label class="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
             <input v-model="settings.currency_symbol" type="text"
               class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Receipt Paper Width</label>
+            <select v-model="settings.receipt_paper_width"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-blue-500 focus:outline-none bg-white">
+              <option value="80">80mm (Standard)</option>
+              <option value="58">58mm (Compact)</option>
+            </select>
           </div>
 
           <div>

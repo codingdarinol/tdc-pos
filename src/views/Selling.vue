@@ -20,7 +20,13 @@ const selectedCategory = ref("All");
 const checkoutModal = ref(false);
 const showDetailsModal = ref(false);
 const selectedOrder = ref(null);
+const storeName = ref('TDC-POS');
+const storePhone = ref('');
+const storeAddress = ref('');
 const currencySymbol = ref('Rp');
+const receiptPaperWidth = ref('80');
+const showInvoicePreview = ref(false);
+const invoicePreview = ref(null);
 const showProductDetails = ref(false);
 const selectedProductDetails = ref(null);
 const editingOrderId = ref(null);
@@ -68,6 +74,98 @@ const grandTotal = computed(() => {
   return subtotal.value + form.delivery_charge;
 });
 
+function applyDisplaySettings(settingsData) {
+  if (!settingsData) return;
+  if (settingsData.store_name) {
+    storeName.value = settingsData.store_name;
+  }
+  if (settingsData.store_phone) {
+    storePhone.value = settingsData.store_phone;
+  }
+  if (settingsData.store_address) {
+    storeAddress.value = settingsData.store_address;
+  }
+  if (settingsData.currency_symbol) {
+    currencySymbol.value = settingsData.currency_symbol;
+  }
+  if (settingsData.receipt_paper_width === '58' || settingsData.receipt_paper_width === '80') {
+    receiptPaperWidth.value = settingsData.receipt_paper_width;
+  }
+}
+
+function buildCheckoutInvoicePreview() {
+  const now = new Date();
+  return {
+    invoice_number: editingOrderId.value
+      ? `SALE-${editingOrderId.value}`
+      : `DRAFT-${now.getTime().toString().slice(-6)}`,
+    created_at: now.toISOString(),
+    customer_name: form.customer_name || 'Guest',
+    customer_phone: form.customer_phone || '',
+    customer_address: form.customer_address || '',
+    payment_method: form.payment_method || 'cash',
+    notes: form.details || '',
+    items: cart.value.map(item => ({
+      product_name: item.product_name,
+      quantity: Number(item.quantity) || 0,
+      selling_price: Number(item.selling_price) || 0,
+      subtotal: Number(item.subtotal) || 0,
+    })),
+    subtotal: Number(subtotal.value) || 0,
+    discount: Number(autoDiscount.value) || 0,
+    delivery_charge: Number(form.delivery_charge) || 0,
+    grand_total: Number(grandTotal.value) || 0,
+  };
+}
+
+function buildOrderInvoicePreview(order) {
+  if (!order) return null;
+  return {
+    invoice_number: `SALE-${order.order_id}`,
+    created_at: order.order_date || new Date().toISOString(),
+    customer_name: order.customer_name || 'Guest',
+    customer_phone: order.customer_phone || '',
+    customer_address: order.customer_address || '',
+    payment_method: order.payment_method || 'cash',
+    notes: order.notes || '',
+    items: (order.items || []).map(item => ({
+      product_name: item.product_name,
+      quantity: Number(item.quantity) || 0,
+      selling_price: Number(item.selling_price) || 0,
+      subtotal: Number(item.subtotal) || 0,
+    })),
+    subtotal: Number(order.subtotal) || 0,
+    discount: Number(order.discount) || 0,
+    delivery_charge: Number(order.delivery_charge) || 0,
+    grand_total: Number(order.grand_total) || 0,
+  };
+}
+
+function openInvoicePreviewFromCheckout() {
+  if (cart.value.length === 0) return;
+  invoicePreview.value = buildCheckoutInvoicePreview();
+  showInvoicePreview.value = true;
+}
+
+function openInvoicePreviewFromOrder() {
+  if (!selectedOrder.value) return;
+  invoicePreview.value = buildOrderInvoicePreview(selectedOrder.value);
+  showInvoicePreview.value = true;
+}
+
+function printInvoice() {
+  window.print();
+}
+
+function closeInvoicePreview() {
+  showInvoicePreview.value = false;
+}
+
+function formatInvoiceDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('id-ID');
+}
+
 async function loadProducts() {
   try {
     const [prods, settingsData] = await Promise.all([
@@ -85,9 +183,7 @@ async function loadProducts() {
       }
     }
     products.value = prods;
-    if (settingsData && settingsData.currency_symbol) {
-      currencySymbol.value = settingsData.currency_symbol;
-    }
+    applyDisplaySettings(settingsData);
   } catch (error) {
     console.error("Failed to load products:", error);
   }
@@ -100,9 +196,7 @@ async function loadOrders() {
       invoke('get_settings')
     ]);
     orders.value = ordersData;
-    if (settingsData && settingsData.currency_symbol) {
-      currencySymbol.value = settingsData.currency_symbol;
-    }
+    applyDisplaySettings(settingsData);
   } catch (error) {
     console.error("Failed to load orders:", error);
   }
@@ -249,6 +343,8 @@ async function processOrder() {
 
     cart.value = [];
     checkoutModal.value = false;
+    showInvoicePreview.value = false;
+    invoicePreview.value = null;
     form.customer_name = "Guest";
     form.customer_phone = "";
     form.delivery_charge = 0;
@@ -325,9 +421,9 @@ onBeforeRouteLeave((to, from) => {
 
 onMounted(() => {
   loadProducts();
-  // Also load settings for currency
+  // Also load settings for display preferences
   invoke('get_settings').then(s => {
-    if (s && s.currency_symbol) currencySymbol.value = s.currency_symbol;
+    applyDisplaySettings(s);
   });
 });
 </script>
@@ -589,6 +685,10 @@ onMounted(() => {
         <div class="mt-5 flex justify-end space-x-3">
           <button @click="checkoutModal = false"
             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">Cancel</button>
+          <button @click="openInvoicePreviewFromCheckout"
+            class="px-5 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 font-bold text-sm">
+            Preview Invoice
+          </button>
           <button @click="processOrder"
             class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm">
             {{ editingOrderId ? 'Confirm Update' : 'Confirm Payment' }}
@@ -659,6 +759,102 @@ onMounted(() => {
             </div>
           </div>
         </div>
+        <div class="mt-4 flex justify-end">
+          <button @click="openInvoicePreviewFromOrder"
+            class="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 font-bold text-sm">
+            Preview / Print Invoice
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoice Preview + Print Modal -->
+    <div v-if="showInvoicePreview && invoicePreview"
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col">
+        <button @click="closeInvoicePreview"
+          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">×</button>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pr-8">
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Invoice Preview</h2>
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Paper</label>
+            <select v-model="receiptPaperWidth"
+              class="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white">
+              <option value="80">80mm</option>
+              <option value="58">58mm</option>
+            </select>
+            <button @click="printInvoice"
+              class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-bold">
+              Print
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-auto bg-gray-100 rounded-lg p-4">
+          <div id="invoice-print-area" class="invoice-paper mx-auto"
+            :class="receiptPaperWidth === '58' ? 'invoice-paper-58' : 'invoice-paper-80'">
+            <div class="invoice-inner">
+              <div class="text-center border-b border-dashed border-gray-300 pb-2 mb-2">
+                <div class="font-black text-base">{{ storeName }}</div>
+                <div v-if="storePhone" class="text-[11px] text-gray-600">{{ storePhone }}</div>
+                <div v-if="storeAddress" class="text-[11px] text-gray-600 whitespace-pre-wrap">{{ storeAddress }}</div>
+              </div>
+
+              <div class="text-[11px] space-y-1 mb-2">
+                <div class="flex justify-between"><span>No:</span><span class="font-semibold">{{ invoicePreview.invoice_number }}</span></div>
+                <div class="flex justify-between"><span>Date:</span><span>{{ formatInvoiceDate(invoicePreview.created_at) }}</span></div>
+                <div class="flex justify-between"><span>Customer:</span><span class="font-semibold">{{ invoicePreview.customer_name }}</span></div>
+                <div v-if="invoicePreview.customer_phone" class="flex justify-between"><span>Phone:</span><span>{{ invoicePreview.customer_phone }}</span></div>
+                <div class="flex justify-between"><span>Payment:</span><span class="uppercase">{{ invoicePreview.payment_method }}</span></div>
+              </div>
+
+              <div class="border-t border-b border-dashed border-gray-300 py-1 mb-1 text-[11px] font-bold grid grid-cols-[1fr_auto_auto] gap-2">
+                <span>Item</span>
+                <span class="text-right">Qty</span>
+                <span class="text-right">Subtotal</span>
+              </div>
+
+              <div class="space-y-1 mb-2">
+                <div v-for="(item, idx) in invoicePreview.items" :key="idx" class="text-[11px]">
+                  <div class="grid grid-cols-[1fr_auto_auto] gap-2">
+                    <span class="truncate">{{ item.product_name }}</span>
+                    <span class="text-right">{{ formatNumber(item.quantity) }}</span>
+                    <span class="text-right">{{ currencySymbol }}{{ formatAmount(item.subtotal) }}</span>
+                  </div>
+                  <div class="text-[10px] text-gray-500 text-right">{{ currencySymbol }}{{ formatAmount(item.selling_price) }} x {{ formatNumber(item.quantity) }}</div>
+                </div>
+              </div>
+
+              <div class="border-t border-dashed border-gray-300 pt-2 text-[11px] space-y-1">
+                <div class="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>{{ currencySymbol }}{{ formatAmount(invoicePreview.subtotal) }}</span>
+                </div>
+                <div v-if="invoicePreview.discount > 0" class="flex justify-between text-red-600">
+                  <span>Discount</span>
+                  <span>-{{ currencySymbol }}{{ formatAmount(invoicePreview.discount) }}</span>
+                </div>
+                <div v-if="invoicePreview.delivery_charge > 0" class="flex justify-between">
+                  <span>Delivery</span>
+                  <span>+{{ currencySymbol }}{{ formatAmount(invoicePreview.delivery_charge) }}</span>
+                </div>
+                <div class="flex justify-between font-black text-sm border-t border-gray-200 pt-1 mt-1">
+                  <span>TOTAL</span>
+                  <span>{{ currencySymbol }}{{ formatAmount(invoicePreview.grand_total) }}</span>
+                </div>
+              </div>
+
+              <div v-if="invoicePreview.notes" class="mt-2 text-[10px] text-gray-600 border-t border-dashed border-gray-300 pt-2">
+                <span class="font-bold">Notes:</span> {{ invoicePreview.notes }}
+              </div>
+
+              <div class="mt-3 text-center text-[10px] text-gray-500 border-t border-dashed border-gray-300 pt-2">
+                Thank you for your purchase
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -667,3 +863,50 @@ onMounted(() => {
       @close="showProductDetails = false" />
   </div>
 </template>
+
+<style>
+.invoice-paper {
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.invoice-paper-80 {
+  width: 80mm;
+}
+
+.invoice-paper-58 {
+  width: 58mm;
+}
+
+.invoice-inner {
+  font-family: "Courier New", monospace;
+  padding: 8px;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #invoice-print-area,
+  #invoice-print-area * {
+    visibility: visible !important;
+  }
+
+  #invoice-print-area {
+    position: fixed;
+    left: 0;
+    top: 0;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  @page {
+    margin: 4mm;
+    size: auto;
+  }
+}
+</style>
