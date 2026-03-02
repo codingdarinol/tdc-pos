@@ -104,7 +104,8 @@ After pushing tags, use the GitHub CLI to automate the release creation and uplo
 
 ```bash
 gh release create vx.x.x \
-  ./src-tauri/target/release/bundle/nsis/TDC-POS_*.exe \
+  ./src-tauri/target/release/bundle/nsis/TDC-POS_x.x.x_x64-setup.exe \
+  ./src-tauri/target/release/bundle/msi/TDC-POS_x.x.x_x64_en-US.msi \
   ./src-tauri/gen/android/app/build/outputs/apk/universal/release/tdc-pos-vx.x.x.apk \
   --title "vx.x.x" \
   --notes "Release vx.x.x"
