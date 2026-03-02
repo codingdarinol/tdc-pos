@@ -198,12 +198,16 @@ async function saveProduct() {
   }
 }
 
-async function deleteProduct(id) {
-  const isConfirmed = await confirm("Are you sure you want to delete this product?", { kind: 'warning' });
+async function deleteProduct(product) {
+  if (product.stock_quantity > 0) {
+    alert("Cannot delete product: stock is currently available. Please empty stock first.");
+    return;
+  }
+  const isConfirmed = await confirm(`Are you sure you want to delete ${product.product_name}?`, { kind: 'warning' });
   if (!isConfirmed) return;
   try {
-    await invoke('delete_product', { id });
-    await logActivity('DELETE', 'Product', id, `Deleted product #${id}`);
+    await invoke('delete_product', { id: product.id });
+    await logActivity('DELETE', 'Product', product.id, `Deleted product #${product.id}`);
     loadProducts();
   } catch (error) {
     console.error("Failed to delete product:", error);
@@ -255,65 +259,137 @@ onMounted(() => {
         class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
     </div>
 
-    <!-- Table -->
-    <div class="bg-white rounded-lg shadow overflow-hidden flex-1 overflow-x-auto overflow-y-auto">
-      <table class="w-full text-left border-collapse min-w-[700px]">
-        <thead class="bg-gray-100 text-gray-600 uppercase text-xs font-semibold sticky top-0 z-10">
-          <tr>
-            <th class="p-3 border-b">Image</th>
-            <th class="p-3 border-b">Code</th>
-            <th class="p-3 border-b">Name</th>
-            <th class="p-3 border-b">Category</th>
-            <th class="p-3 border-b">Stock</th>
-            <th class="p-3 border-b">Buy Price</th>
-            <th class="p-3 border-b">Sell Price</th>
-            <th class="p-3 border-b">Buying Cost</th>
-            <th class="p-3 border-b">Profit</th>
-            <th class="p-3 border-b text-right">Actions</th>
-          </tr>
+    <!-- Card Grid View -->
+    <div class="flex-1 overflow-y-auto pr-2 pb-4">
+      <div v-if="filteredProducts.length === 0" class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        No products found.
+      </div>
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div v-for="product in filteredProducts" :key="product.id"
+          class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow flex flex-col relative">
 
-        </thead>
-        <tbody class="text-gray-700 text-sm">
-          <tr v-for="product in filteredProducts" :key="product.id" class="hover:bg-gray-50 border-b last:border-b-0">
-            <td class="p-3">
-              <div class="w-10 h-10 rounded bg-gray-100 overflow-hidden flex-shrink-0">
-                <img v-if="product._thumb" :src="product._thumb" class="w-full h-full object-cover" />
-                <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-xs">N/A</div>
+          <!-- Image Section -->
+          <div class="aspect-video w-full bg-gray-50 flex items-center justify-center relative overflow-hidden group">
+            <img v-if="product._thumb" :src="product._thumb"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+            <div v-else class="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mb-2 opacity-50" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="text-xs font-medium uppercase tracking-wider">No Image</span>
+            </div>
+
+            <!-- Category Badge overlay -->
+            <div v-if="product.category"
+              class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold text-gray-600 shadow-sm border border-white/20 uppercase tracking-widest">
+              {{ product.category }}
+            </div>
+
+            <!-- Code Badge overlay -->
+            <div v-if="product.product_code"
+              class="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs font-mono text-white/90 shadow-sm">
+              {{ product.product_code }}
+            </div>
+          </div>
+
+          <!-- Content Section -->
+          <div class="p-4 flex flex-col flex-1">
+            <h3 class="font-bold text-gray-800 text-lg leading-tight mb-1 line-clamp-2" :title="product.product_name">
+              {{ product.product_name }}
+            </h3>
+
+            <!-- Stock & Price Highlight -->
+            <div class="mt-3 flex items-center justify-between border-b pb-3 border-gray-100">
+              <div>
+                <div class="text-[10px] text-gray-500 uppercase font-semibold mb-0.5">Stock</div>
+                <div class="flex items-baseline gap-1">
+                  <span class="text-xl font-black leading-none"
+                    :class="{ 'text-red-500': product.stock_quantity <= 5, 'text-gray-800': product.stock_quantity > 5 }">
+                    {{ product.stock_quantity }}
+                  </span>
+                  <span class="text-xs text-gray-500 font-medium">{{ product.unit }}</span>
+                </div>
               </div>
-            </td>
-            <td class="p-3 text-xs font-mono">{{ product.product_code || '-' }}</td>
-            <td class="p-3 font-medium">{{ product.product_name }}</td>
-            <td class="p-3">{{ product.category || '-' }}</td>
-            <td class="p-3" :class="{ 'text-red-500 font-bold': product.stock_quantity <= 5 }">
-              {{ product.stock_quantity }} {{ product.unit }}
-            </td>
-            <td class="p-3">{{ currencySymbol }}{{ product.buying_price.toFixed(2) }}</td>
-            <td class="p-3">{{ currencySymbol }}{{ product.default_selling_price.toFixed(2) }}</td>
-            <td class="p-3">{{ currencySymbol }}{{ (product.buying_price - product.original_price).toFixed(2) }}</td>
-            <td class="p-3 font-bold text-green-600">{{ currencySymbol }}{{ (product.default_selling_price -
-              product.buying_price).toFixed(2) }}</td>
-            <td class="p-3 text-right space-x-1 whitespace-nowrap">
-              <button @click="openViewModal(product)"
-                class="text-green-600 hover:text-green-800 text-xs font-medium border border-green-200 px-2 py-1 rounded hover:bg-green-50">View</button>
-              <button @click="openModal(product)"
-                class="text-blue-600 hover:text-blue-800 text-xs font-medium border border-blue-200 px-2 py-1 rounded hover:bg-blue-50">Edit</button>
-              <button @click="deleteProduct(product.id)"
-                class="text-red-600 hover:text-red-800 text-xs font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
-            </td>
 
-          </tr>
-          <tr v-if="filteredProducts.length === 0">
-            <td colspan="8" class="p-8 text-center text-gray-500">No products found.</td>
-          </tr>
-        </tbody>
-      </table>
+              <div class="text-right">
+                <div class="text-[10px] text-gray-500 uppercase font-semibold mb-0.5">Selling Price</div>
+                <div class="text-lg font-bold text-blue-600 leading-none">
+                  {{ currencySymbol }}{{ product.default_selling_price.toFixed(2) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Details -->
+            <div class="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 text-xs">
+              <div class="flex flex-col">
+                <span class="text-gray-400">Buy Price</span>
+                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ product.buying_price.toFixed(2) }}</span>
+              </div>
+              <div class="flex flex-col text-right">
+                <span class="text-gray-400">Buying Cost</span>
+                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ (product.buying_price -
+                  product.original_price).toFixed(2) }}</span>
+              </div>
+              <div class="grid col-span-2 bg-green-50 rounded-lg p-2 mt-1 border border-green-100">
+                <div class="flex justify-between items-center">
+                  <span class="text-green-700 font-medium">Est. Profit</span>
+                  <span class="font-bold text-green-700 text-sm">{{ currencySymbol }}{{ (product.default_selling_price -
+                    product.buying_price).toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-auto pt-4">
+              <!-- Actions -->
+              <div class="flex gap-2">
+                <button @click="openViewModal(product)"
+                  class="flex-1 flex justify-center items-center gap-1.5 py-2 px-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg text-xs font-bold transition-colors border border-gray-200"
+                  title="View">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span class="sr-only sm:not-sr-only">View</span>
+                </button>
+                <button @click="openModal(product)"
+                  class="flex-1 flex justify-center items-center gap-1.5 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold transition-colors border border-blue-200"
+                  title="Edit">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span class="sr-only sm:not-sr-only">Edit</span>
+                </button>
+                <button @click="deleteProduct(product)"
+                  class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition-colors border border-red-200"
+                  title="Delete">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Modal -->
     <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col my-4">
-        <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">✕</button>
-        <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 shrink-0 pr-8">{{ isEditing ? 'Edit Product' : 'Add New Product' }}
+        <button @click="closeModal"
+          class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">✕</button>
+        <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 shrink-0 pr-8">{{ isEditing ? 'Edit Product' : 'Add
+          New Product' }}
         </h2>
 
         <div class="overflow-y-auto flex-1 pr-1">
@@ -387,7 +463,7 @@ onMounted(() => {
                   disabled>
               </div>
               <span class="text-[10px] text-blue-600 font-medium italic">Buy Price + {{ form.profit_percentage
-              }}%</span>
+                }}%</span>
             </div>
 
             <div>

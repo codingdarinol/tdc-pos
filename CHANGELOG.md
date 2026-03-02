@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.7] - 2026-03-02
+
+### Added
+
+- **Backup & Restore**: Modified manual backups to produce `.zip` archives that include both the SQLite database and all local product images.
+- **Product Listing**: Converted table layout in Products and Stock List to modern, responsive CSS grid card layouts.
+
+### Fixed
+
+- **Mobile View**: Fixed overlay z-index bug preventing the sidebar close button from receiving clicks.
+- **Mobile View**: Changed `100vh` to `100dvh` to prevent Android system navigation bars from overlapping the application footer.
+- **Products**: Prevented accidental deletion of products that currently have an active stock quantity.
+
 ## [0.18.5] - 2026-03-02
 
 ### Fixed

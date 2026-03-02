@@ -56,11 +56,11 @@ function logout() {
 </script>
 
 <template>
-  <div class="flex h-screen font-sans overflow-hidden" style="background: var(--t-main-bg);">
+  <div class="flex h-[100dvh] font-sans overflow-hidden" style="background: var(--t-main-bg);">
 
     <!-- Mobile Overlay -->
     <div v-if="isMobile && isSidebarOpen" @click="isSidebarOpen = false"
-      class="fixed inset-0 bg-black/50 z-30 transition-opacity backdrop-blur-sm">
+      class="fixed inset-0 bg-black/50 z-40 transition-opacity backdrop-blur-sm">
     </div>
 
     <!-- Sidebar -->
@@ -69,7 +69,7 @@ function logout() {
       - Desktop: Relative position to push content, v-show/hidden toggling.
     -->
     <aside v-if="route.name !== 'Login'" :class="[
-      'flex flex-col shadow-xl z-40 sidebar-shell transition-all duration-300 ease-in-out',
+      'flex flex-col shadow-xl z-50 sidebar-shell transition-all duration-300 ease-in-out',
       isMobile ? 'fixed inset-y-0 left-0 w-64' : 'relative',
       isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0',
       !isMobile && !isSidebarOpen ? 'w-0 overflow-hidden opacity-0' : 'w-64 opacity-100'
@@ -210,7 +210,7 @@ function logout() {
     <main class="flex-1 overflow-auto relative w-full h-full flex flex-col" style="background: var(--t-main-bg);">
 
       <!-- Top Toggle Button (Visible on Mobile AND Desktop when closed) -->
-      <div v-if="route.name !== 'Login'" class="sticky top-0 z-50 w-full flex items-center p-3 md:p-4 bg-transparent"
+      <div v-if="route.name !== 'Login'" class="sticky top-0 z-30 w-full flex items-center p-3 md:p-4 bg-transparent"
         style="padding-top: max(env(safe-area-inset-top, 1rem), 1rem);">
         <button @click="isSidebarOpen = !isSidebarOpen"
           class="p-2 rounded-xl shadow-sm border border-gray-200 bg-white/80 backdrop-blur-md hover:bg-white hover:shadow-md transition-all active:scale-95 flex-shrink-0"

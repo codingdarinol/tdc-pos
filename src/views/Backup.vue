@@ -2,8 +2,9 @@
 import { ref, onMounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { readFile, writeFile, remove, BaseDirectory } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, remove, readDir, BaseDirectory, exists, mkdir } from '@tauri-apps/plugin-fs';
 import { logActivity } from '../utils/activityLogger';
+import JSZip from 'jszip';
 
 const loading = ref(false);
 const statusMessage = ref('');
@@ -74,26 +75,47 @@ async function runManualBackup() {
   try {
     loading.value = true;
     const now = new Date().toISOString().replace(/[:.]/g, '-');
-    const defaultName = `tdc-pos-manual-${now}.db`;
+    const defaultName = `tdc-pos-manual-${now}.zip`;
 
     let dest;
     if (backupSettings.value.backup_dir) {
       dest = `${backupSettings.value.backup_dir}/${defaultName}`;
     } else {
-      dest = await save({
-        defaultPath: defaultName
-      });
+      dest = await save({ defaultPath: defaultName });
     }
 
     if (dest) {
       try {
-        await invoke('backup_db', { destinationPath: dest });
-      } catch (backupError) {
-        // Fallback for Android Content URIs or restricted file systems
         await invoke('backup_db', { destinationPath: "INTERNAL_TEMP" });
-        const bytes = await readFile('temp_backup.db', { baseDir: BaseDirectory.AppData });
-        await writeFile(dest, bytes);
+        const dbBytes = await readFile('temp_backup.db', { baseDir: BaseDirectory.AppData });
+
+        const zip = new JSZip();
+        zip.file('backup.db', dbBytes);
+
+        try {
+          // Add images directory if it exists
+          const hasImages = await exists('images', { baseDir: BaseDirectory.AppData });
+          if (hasImages) {
+            const imageEntries = await readDir('images', { baseDir: BaseDirectory.AppData });
+            const imgFolder = zip.folder('images');
+            for (const entry of imageEntries) {
+              if (entry.isFile) {
+                const imgBytes = await readFile(`images/${entry.name}`, { baseDir: BaseDirectory.AppData });
+                imgFolder.file(entry.name, imgBytes);
+              }
+            }
+          }
+        } catch (e) {
+          console.log("No images folder found or error reading it:", e);
+        }
+
+        const zipBytes = await zip.generateAsync({ type: 'uint8array', compression: "DEFLATE" });
+        await writeFile(dest, zipBytes);
         await remove('temp_backup.db', { baseDir: BaseDirectory.AppData }).catch(e => console.warn(e));
+
+      } catch (backupError) {
+        showStatus('Backup packaging failed: ' + backupError, 'error');
+        return;
       }
 
       if (backupSettings.value.backup_dir) {
@@ -104,7 +126,7 @@ async function runManualBackup() {
       }
       await loadBackups();
       await logActivity('BACKUP', 'Backup', null, `Manual backup created: ${defaultName}`);
-      showStatus('Backup created successfully!');
+      showStatus('Backup (Data & Images) created successfully!');
     }
   } catch (error) {
     showStatus('Backup failed: ' + error, 'error');
@@ -114,19 +136,48 @@ async function runManualBackup() {
 }
 
 async function restoreBackup(path) {
-  if (!confirm("⚠️ RESTORE DATABASE?\n\nThis will OVERWRITE your current data with the selected backup.\nThe app will restart after restore.\n\nAre you sure?")) return;
+  if (!confirm("⚠️ RESTORE DATABASE AND IMAGES?\n\nThis will OVERWRITE your current data with the selected backup.\nThe app will restart after restore.\n\nAre you sure?")) return;
 
   try {
     loading.value = true;
-
-    // Read the file using Tauri plugin-fs which handles Android content URIs natively
     const contents = await readFile(path);
 
-    // Write directly to the appData directory using BaseDirectory
-    await writeFile('restore.db', contents, { baseDir: BaseDirectory.AppData });
+    // Check if it's a zip by magic number PK\x03\x04
+    if (contents[0] === 0x50 && contents[1] === 0x4B) {
+      const zip = await JSZip.loadAsync(contents);
+
+      const dbFile = zip.file('backup.db') || zip.file('temp_backup.db');
+      if (dbFile) {
+        const dbBytes = await dbFile.async('uint8array');
+        await writeFile('restore.db', dbBytes, { baseDir: BaseDirectory.AppData });
+      } else {
+        throw new Error("Invalid backup: No database file found in the archive.");
+      }
+
+      const imgFolder = zip.folder('images');
+      if (imgFolder) {
+        // ensure images directory exists
+        const hasImages = await exists('images', { baseDir: BaseDirectory.AppData });
+        if (!hasImages) {
+          await mkdir('images', { baseDir: BaseDirectory.AppData });
+        }
+        for (const relativePath in zip.files) {
+          if (relativePath.startsWith('images/') && !zip.files[relativePath].dir) {
+            const imgBytes = await zip.files[relativePath].async('uint8array');
+            const filename = relativePath.substring(7);
+            if (filename) {
+              await writeFile(`images/${filename}`, imgBytes, { baseDir: BaseDirectory.AppData });
+            }
+          }
+        }
+      }
+    } else {
+      // Old DB format backward compatibility
+      await writeFile('restore.db', contents, { baseDir: BaseDirectory.AppData });
+    }
 
     await logActivity('RESTORE', 'Backup', null, `Database restored from: ${path}`);
-    showStatus('Database restored! Please restart the application.');
+    showStatus('Data and images restored! Please restart the application.');
   } catch (error) {
     showStatus('Restore failed: ' + error, 'error');
   } finally {
