@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { confirm } from '@tauri-apps/plugin-dialog';
 import { logActivity } from '../utils/activityLogger';
 import { useAuthStore } from '../stores/auth';
+import { formatAmount, formatNumber } from '../utils/numberFormat';
 
 const auth = useAuthStore();
 
@@ -15,6 +16,7 @@ const editingExpenseId = ref(null);
 const startDate = ref(new Date().toISOString().split('T')[0]);
 const endDate = ref(new Date().toISOString().split('T')[0]);
 const searchQuery = ref('');
+const currencySymbol = ref('Rp');
 
 const form = ref({
     expense_date: new Date().toISOString().split('T')[0],
@@ -47,6 +49,17 @@ const filteredExpenses = computed(() => {
 const totalExpenses = computed(() => {
     return filteredExpenses.value.reduce((sum, item) => sum + item.amount, 0);
 });
+
+async function loadSettings() {
+    try {
+        const settings = await invoke('get_settings');
+        if (settings && settings.currency_symbol) {
+            currencySymbol.value = settings.currency_symbol;
+        }
+    } catch (error) {
+        console.error("Failed to load settings:", error);
+    }
+}
 
 async function loadExpenses() {
     loading.value = true;
@@ -159,6 +172,7 @@ function resetForm() {
 }
 
 onMounted(() => {
+    loadSettings();
     setDatePreset('month'); // Default to current month
 });
 </script>
@@ -225,15 +239,14 @@ onMounted(() => {
                 <div class="bg-rose-50 border border-rose-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex items-center justify-between">
                     <div>
                         <div class="text-[9px] sm:text-[10px] font-black text-rose-500 uppercase tracking-widest">Total Expenses</div>
-                        <div class="text-xl sm:text-2xl font-black text-rose-800 mt-1">৳{{ totalExpenses.toLocaleString(undefined,
-                            { minimumFractionDigits: 2}) }}</div>
+                        <div class="text-xl sm:text-2xl font-black text-rose-800 mt-1">{{ currencySymbol }}{{ formatAmount(totalExpenses) }}</div>
                     </div>
                     <div class="text-2xl sm:text-3xl opacity-50">💸</div>
                 </div>
                 <div class="bg-gray-50 border border-gray-200 p-3 sm:p-4 rounded-xl sm:rounded-2xl flex items-center justify-between">
                     <div>
                         <div class="text-[9px] sm:text-[10px] font-black text-gray-500 uppercase tracking-widest">Expense Count</div>
-                        <div class="text-lg sm:text-xl font-black text-gray-800 mt-1">{{ filteredExpenses.length }} <span
+                        <div class="text-lg sm:text-xl font-black text-gray-800 mt-1">{{ formatNumber(filteredExpenses.length) }} <span
                                 class="text-xs sm:text-sm font-medium text-gray-500">records</span></div>
                     </div>
                     <div class="text-2xl sm:text-3xl opacity-50">🧾</div>
@@ -271,8 +284,8 @@ onMounted(() => {
                                 }}</td>
                             <td class="px-5 py-3 font-bold text-gray-800">{{ expense.category }}</td>
                             <td class="px-5 py-3 text-gray-600 text-xs">{{ expense.notes || '—' }}</td>
-                            <td class="px-5 py-3 text-right font-black text-rose-600 text-lg">৳{{
-                                expense.amount.toFixed(2) }}</td>
+                            <td class="px-5 py-3 text-right font-black text-rose-600 text-lg">{{ currencySymbol }}{{
+                                formatAmount(expense.amount) }}</td>
                             <td class="px-5 py-3 text-right space-x-2">
                                 <button v-if="!auth.isDemo" @click="editExpense(expense)"
                                     class="text-xs font-black text-blue-500 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors">EDIT</button>
@@ -302,7 +315,7 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-1.5">Amount
-                            (৳)</label>
+                            ({{ currencySymbol }})</label>
                         <input v-model.number="form.amount" type="number" min="0" step="0.01" placeholder="0.00"
                             class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none transition-all font-black text-rose-600">
                     </div>

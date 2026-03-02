@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { useAuthStore } from '../stores/auth';
 import { useI18nStore } from '../stores/i18n';
+import { formatAmount, formatNumber } from '../utils/numberFormat';
 
 const auth = useAuthStore();
 const i18n = useI18nStore();
@@ -79,7 +80,7 @@ const stats = ref({
   inventory_value: 0, low_stock_count: 0, order_count: 0, product_count: 0
 });
 
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 const activeTab = ref('sales'); // 'sales', 'purchases', 'profit'
 
 async function loadStats() {
@@ -134,8 +135,7 @@ onMounted(() => {
         class="bg-gradient-to-br from-indigo-600 to-blue-700 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl shadow-blue-100 text-white transform transition hover:scale-[1.02]">
         <div class="text-blue-100 text-[9px] sm:text-xs font-black uppercase tracking-widest opacity-80 truncate">{{
           i18n.t('inventory_valuation') }}</div>
-        <div class="text-3xl font-black mt-2">{{ currencySymbol }}{{ stats.inventory_value.toLocaleString(undefined,
-          { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-3xl font-black mt-2">{{ currencySymbol }}{{ formatAmount(stats.inventory_value) }}</div>
         <div class="mt-4 flex items-center gap-2">
           <span class="px-2 py-0.5 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-tighter">{{
             i18n.t('current_assets') }}</span>
@@ -146,8 +146,7 @@ onMounted(() => {
         class="bg-gradient-to-br from-emerald-600 to-teal-700 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-xl shadow-teal-100 text-white transform transition hover:scale-[1.02]">
         <div class="text-teal-100 text-[9px] sm:text-xs font-black uppercase tracking-widest opacity-80 truncate">{{ i18n.t('lifetime_profit')
         }}</div>
-        <div class="text-2xl sm:text-3xl font-black mt-2 truncate">{{ currencySymbol }}{{ stats.total_profit.toLocaleString(undefined,
-          { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-2xl sm:text-3xl font-black mt-2 truncate">{{ currencySymbol }}{{ formatAmount(stats.total_profit) }}</div>
         <div class="mt-4 flex items-center gap-2">
           <span class="px-2 py-0.5 bg-white/20 rounded-lg text-[10px] font-bold uppercase tracking-tighter">{{
             i18n.t('net_accrued') }}</span>
@@ -158,7 +157,7 @@ onMounted(() => {
         class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 flex items-center justify-between group cursor-help">
         <div class="overflow-hidden">
           <div class="text-gray-400 text-[9px] sm:text-xs font-black uppercase tracking-widest truncate">{{ i18n.t('active_orders') }}</div>
-          <div class="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{{ stats.order_count }}</div>
+          <div class="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{{ formatNumber(stats.order_count) }}</div>
         </div>
         <div
           class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gray-50 flex items-center justify-center transition-colors group-hover:bg-blue-50 flex-shrink-0 ml-2">
@@ -173,7 +172,7 @@ onMounted(() => {
         <div class="overflow-hidden">
           <div class="text-gray-400 text-[9px] sm:text-xs font-black uppercase tracking-widest truncate">{{ i18n.t('low_stock_items') }}</div>
           <div class="text-2xl sm:text-3xl font-black text-gray-900 mt-1" :class="{ 'text-red-500': stats.low_stock_count > 0 }">{{
-            stats.low_stock_count }}</div>
+            formatNumber(stats.low_stock_count) }}</div>
         </div>
         <div
           class="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gray-50 flex items-center justify-center transition-colors group-hover:bg-red-50 flex-shrink-0 ml-2">
@@ -209,7 +208,7 @@ onMounted(() => {
             class="absolute -right-4 -bottom-4 text-6xl sm:text-8xl opacity-[0.03] font-black group-hover:scale-110 transition-transform select-none">
             D</div>
           <h4 class="text-blue-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('today') }}</h4>
-          <div class="text-4xl font-black text-blue-900">{{ currencySymbol }}{{ stats.sales_today.toLocaleString() }}
+          <div class="text-4xl font-black text-blue-900">{{ currencySymbol }}{{ formatAmount(stats.sales_today) }}
           </div>
           <progress class="w-full h-1.5 mt-6 accent-blue-600 opacity-20" :value="stats.sales_today"
             :max="stats.sales_month / 10"></progress>
@@ -219,7 +218,7 @@ onMounted(() => {
             class="absolute -right-4 -bottom-4 text-6xl sm:text-8xl opacity-[0.03] font-black group-hover:scale-110 transition-transform select-none">
             M</div>
           <h4 class="text-indigo-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('this_month') }}</h4>
-          <div class="text-4xl font-black text-indigo-900">{{ currencySymbol }}{{ stats.sales_month.toLocaleString() }}
+          <div class="text-4xl font-black text-indigo-900">{{ currencySymbol }}{{ formatAmount(stats.sales_month) }}
           </div>
           <progress class="w-full h-1.5 mt-6 accent-indigo-600 opacity-20" :value="stats.sales_month"
             :max="stats.sales_year / 12"></progress>
@@ -229,7 +228,7 @@ onMounted(() => {
             class="absolute -right-4 -bottom-4 text-6xl sm:text-8xl opacity-[0.03] font-black group-hover:scale-110 transition-transform select-none">
             Y</div>
           <h4 class="text-violet-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('this_year') }}</h4>
-          <div class="text-4xl font-black text-violet-900">{{ currencySymbol }}{{ stats.sales_year.toLocaleString() }}
+          <div class="text-4xl font-black text-violet-900">{{ currencySymbol }}{{ formatAmount(stats.sales_year) }}
           </div>
           <div class="text-[10px] uppercase font-bold text-violet-400 mt-6 tracking-widest">Projected annual growth
             optimization</div>
@@ -243,19 +242,19 @@ onMounted(() => {
           <div class="absolute -right-4 -bottom-4 text-5xl sm:text-6xl opacity-[0.03] font-black select-none">STOCK</div>
           <h4 class="text-amber-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('procurement_today') }}
           </h4>
-          <div class="text-4xl font-black text-amber-900">{{ currencySymbol }}{{ stats.purchases_today.toLocaleString()
+          <div class="text-4xl font-black text-amber-900">{{ currencySymbol }}{{ formatAmount(stats.purchases_today)
           }}</div>
         </div>
         <div class="p-8 rounded-3xl bg-orange-50/50 border border-orange-100 relative overflow-hidden group">
           <div class="absolute -right-4 -bottom-4 text-6xl opacity-[0.03] font-black">FLOW</div>
           <h4 class="text-orange-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('this_month') }}</h4>
-          <div class="text-4xl font-black text-orange-900">{{ currencySymbol }}{{ stats.purchases_month.toLocaleString()
+          <div class="text-4xl font-black text-orange-900">{{ currencySymbol }}{{ formatAmount(stats.purchases_month)
           }}</div>
         </div>
         <div class="p-8 rounded-3xl bg-rose-50/50 border border-rose-100 relative overflow-hidden group">
           <div class="absolute -right-4 -bottom-4 text-6xl opacity-[0.03] font-black">CAPEX</div>
           <h4 class="text-rose-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('this_year') }}</h4>
-          <div class="text-4xl font-black text-rose-900">{{ currencySymbol }}{{ stats.purchases_year.toLocaleString() }}
+          <div class="text-4xl font-black text-rose-900">{{ currencySymbol }}{{ formatAmount(stats.purchases_year) }}
           </div>
         </div>
       </div>
@@ -268,7 +267,7 @@ onMounted(() => {
           <div class="absolute -right-4 -bottom-4 text-5xl sm:text-6xl opacity-[0.05] font-black select-none">NET</div>
           <h4 class="text-emerald-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('today') }} ({{
             i18n.t('profit') }})</h4>
-          <div class="text-4xl font-black text-emerald-900">{{ currencySymbol }}{{ stats.profit_today.toLocaleString()
+          <div class="text-4xl font-black text-emerald-900">{{ currencySymbol }}{{ formatAmount(stats.profit_today)
           }}</div>
           <div class="text-[10px] uppercase font-bold text-emerald-500 mt-6 tracking-widest">{{
             i18n.t('real_time_analysis') }}</div>
@@ -277,7 +276,7 @@ onMounted(() => {
           <div class="absolute -right-4 -bottom-4 text-6xl opacity-[0.05] font-black">GROSS</div>
           <h4 class="text-teal-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('monthly_margin') }}
           </h4>
-          <div class="text-4xl font-black text-teal-900">{{ currencySymbol }}{{ stats.profit_month.toLocaleString() }}
+          <div class="text-4xl font-black text-teal-900">{{ currencySymbol }}{{ formatAmount(stats.profit_month) }}
           </div>
           <div class="text-[10px] uppercase font-bold text-teal-500 mt-6 tracking-widest">{{ i18n.t('snapshot_accuracy')
           }}</div>
@@ -285,7 +284,7 @@ onMounted(() => {
         <div class="p-8 rounded-3xl bg-cyan-50/50 border border-cyan-100 relative overflow-hidden group text-left">
           <div class="absolute -right-4 -bottom-4 text-6xl opacity-[0.05] font-black">YEAR</div>
           <h4 class="text-cyan-600 text-xs font-black uppercase tracking-widest mb-2">{{ i18n.t('annual_profit') }}</h4>
-          <div class="text-4xl font-black text-cyan-900">{{ currencySymbol }}{{ stats.profit_year.toLocaleString() }}
+          <div class="text-4xl font-black text-cyan-900">{{ currencySymbol }}{{ formatAmount(stats.profit_year) }}
           </div>
           <div class="text-[10px] uppercase font-bold text-cyan-500 mt-6 tracking-widest">{{
             i18n.t('fiscal_performance') }}</div>
@@ -330,7 +329,7 @@ onMounted(() => {
           <div class="space-y-6">
             <div class="flex justify-between items-center border-b border-white/10 pb-4">
               <span class="text-sm font-medium text-gray-300">{{ i18n.t('catalog_size') }}</span>
-              <span class="font-black text-xl">{{ stats.product_count }} SKU</span>
+              <span class="font-black text-xl">{{ formatNumber(stats.product_count) }} SKU</span>
             </div>
             <div class="flex justify-between items-center border-b border-white/10 pb-4">
               <span class="text-sm font-medium text-gray-300">{{ i18n.t('auth_status') }}</span>

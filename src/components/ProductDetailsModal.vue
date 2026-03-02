@@ -1,11 +1,12 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+import { formatAmount, formatNumber } from '../utils/numberFormat';
 
 const props = defineProps({
     show: Boolean,
     product: Object,
-    currencySymbol: { type: String, default: '৳' }
+    currencySymbol: { type: String, default: 'Rp' }
 });
 
 const emit = defineEmits(['close']);
@@ -81,19 +82,19 @@ watch(() => props.show, (newVal) => {
                         <span
                             class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Original</span>
                         <span class="text-lg font-bold text-gray-700">{{ currencySymbol }}{{
-                            product.original_price?.toFixed(2) || '0.00' }}</span>
+                            formatAmount(product.original_price) }}</span>
                     </div>
                     <div class="p-4 bg-blue-50 rounded-2xl border border-blue-100">
                         <span
                             class="block text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5">Buying</span>
                         <span class="text-lg font-bold text-blue-700">{{ currencySymbol }}{{
-                            product.buying_price?.toFixed(2) || '0.00' }}</span>
+                            formatAmount(product.buying_price) }}</span>
                     </div>
                     <div class="p-4 bg-green-50 rounded-2xl border border-green-100">
                         <span
                             class="block text-[10px] font-black text-green-400 uppercase tracking-widest mb-1.5">Selling</span>
                         <span class="text-lg font-bold text-green-700">{{ currencySymbol }}{{
-                            product.default_selling_price?.toFixed(2) || '0.00' }}</span>
+                            formatAmount(product.default_selling_price) }}</span>
                     </div>
                     <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
                         <span
@@ -118,8 +119,8 @@ watch(() => props.show, (newVal) => {
                                 Cost</span>
                             <span class="text-xs text-gray-500 block text-left">(Buy - Orig)</span>
                         </div>
-                        <span class="text-2xl font-black text-gray-900">{{ currencySymbol }}{{ ((product.buying_price ||
-                            0) - (product.original_price || 0)).toFixed(2) }}</span>
+                        <span class="text-2xl font-black text-gray-900">{{ currencySymbol }}{{ formatAmount((product.buying_price ||
+                            0) - (product.original_price || 0)) }}</span>
                     </div>
                     <div
                         class="flex items-center justify-between p-5 bg-gradient-to-br from-green-50 to-white rounded-2xl border border-green-100 shadow-sm transition-all hover:shadow-md">
@@ -130,7 +131,7 @@ watch(() => props.show, (newVal) => {
                             <span class="text-xs text-gray-400 block text-left">(Sell - Buy)</span>
                         </div>
                         <span class="text-2xl font-black text-green-600">{{ currencySymbol }}{{
-                            ((product.default_selling_price || 0) - (product.buying_price || 0)).toFixed(2) }}</span>
+                            formatAmount((product.default_selling_price || 0) - (product.buying_price || 0)) }}</span>
                     </div>
                     <div
                         class="flex items-center justify-between p-5 bg-gradient-to-br from-purple-50 to-white rounded-2xl border border-purple-100 shadow-sm transition-all hover:shadow-md">
@@ -142,8 +143,8 @@ watch(() => props.show, (newVal) => {
                                 }}%)</span>
                         </div>
                         <span class="text-2xl font-black text-purple-600">{{ currencySymbol }}{{
-                            ((product.buying_price || 0) + ((product.buying_price || 0) * (product.profit_percentage ||
-                                0) / 100)).toFixed(2) }}</span>
+                            formatAmount((product.buying_price || 0) + ((product.buying_price || 0) * (product.profit_percentage ||
+                                0) / 100)) }}</span>
                     </div>
                 </div>
 
@@ -158,7 +159,7 @@ watch(() => props.show, (newVal) => {
                                 <span class="text-gray-500">Current Stock</span>
                                 <span class="font-bold px-2 py-0.5 rounded bg-gray-100"
                                     :class="product.stock_quantity <= 5 ? 'text-red-600' : 'text-gray-800'">
-                                    {{ product.stock_quantity }} {{ product.unit || 'pcs' }}
+                                    {{ formatNumber(product.stock_quantity) }} {{ product.unit || 'pcs' }}
                                 </span>
                             </div>
                             <div class="flex justify-between items-center text-sm">
@@ -236,10 +237,10 @@ watch(() => props.show, (newVal) => {
                                         {{ getEntityName(mv) }}
                                     </td>
                                     <td class="p-3 text-center font-bold">
-                                        {{ mv.movement_type === 'IN' ? '+' : '-' }}{{ mv.quantity }}
+                                        {{ mv.movement_type === 'IN' ? '+' : '-' }}{{ formatNumber(mv.quantity) }}
                                     </td>
                                     <td class="p-3 text-right text-gray-600">
-                                        {{ currencySymbol }}{{ mv.price?.toFixed(2) }}
+                                        {{ currencySymbol }}{{ formatAmount(mv.price) }}
                                     </td>
                                 </tr>
                             </tbody>

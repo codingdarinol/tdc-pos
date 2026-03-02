@@ -6,6 +6,7 @@ import { readFile, writeFile, remove, readDir, BaseDirectory, exists, mkdir } fr
 import { logActivity } from '../utils/activityLogger';
 import JSZip from 'jszip';
 import { useAuthStore } from '../stores/auth';
+import { formatNumber } from '../utils/numberFormat';
 
 const auth = useAuthStore();
 
@@ -25,7 +26,7 @@ function formatSize(bytes) {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return `${formatNumber(bytes / Math.pow(k, i), 0, 2)} ${sizes[i]}`;
 }
 
 function showStatus(msg, type = 'success') {

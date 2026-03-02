@@ -22,7 +22,7 @@ const settings = reactive({
   store_address: "",
   store_phone: "",
   store_email: "",
-  currency_symbol: "৳",
+  currency_symbol: "Rp",
   tax_rate: "0",
   google_ai_key: ""
 });

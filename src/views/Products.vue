@@ -6,6 +6,7 @@ import { open, confirm } from '@tauri-apps/plugin-dialog';
 import ProductDetailsModal from '../components/ProductDetailsModal.vue';
 import { logActivity } from '../utils/activityLogger';
 import { useAuthStore } from '../stores/auth';
+import { formatAmount, formatNumber } from '../utils/numberFormat';
 
 const auth = useAuthStore();
 
@@ -14,7 +15,7 @@ const products = ref([]);
 const searchQuery = ref("");
 const showModal = ref(false);
 const isEditing = ref(false);
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 
 const form = ref({
   id: null,
@@ -320,7 +321,7 @@ onMounted(() => {
                 <div class="flex items-baseline gap-1">
                   <span class="text-xl font-black leading-none"
                     :class="{ 'text-red-500': product.stock_quantity <= 5, 'text-gray-800': product.stock_quantity > 5 }">
-                    {{ product.stock_quantity }}
+                    {{ formatNumber(product.stock_quantity) }}
                   </span>
                   <span class="text-xs text-gray-500 font-medium">{{ product.unit }}</span>
                 </div>
@@ -329,7 +330,7 @@ onMounted(() => {
               <div class="text-right">
                 <div class="text-[10px] text-gray-500 uppercase font-semibold mb-0.5">Selling Price</div>
                 <div class="text-lg font-bold text-blue-600 leading-none">
-                  {{ currencySymbol }}{{ product.default_selling_price.toFixed(2) }}
+                  {{ currencySymbol }}{{ formatAmount(product.default_selling_price) }}
                 </div>
               </div>
             </div>
@@ -338,18 +339,16 @@ onMounted(() => {
             <div class="mt-3 grid grid-cols-2 gap-x-2 gap-y-2 text-xs">
               <div class="flex flex-col">
                 <span class="text-gray-400">Buy Price</span>
-                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ product.buying_price.toFixed(2) }}</span>
+                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ formatAmount(product.buying_price) }}</span>
               </div>
               <div class="flex flex-col text-right">
                 <span class="text-gray-400">Buying Cost</span>
-                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ (product.buying_price -
-                  product.original_price).toFixed(2) }}</span>
+                <span class="font-medium text-gray-700">{{ currencySymbol }}{{ formatAmount(product.buying_price - product.original_price) }}</span>
               </div>
               <div class="grid col-span-2 bg-green-50 rounded-lg p-2 mt-1 border border-green-100">
                 <div class="flex justify-between items-center">
                   <span class="text-green-700 font-medium">Est. Profit</span>
-                  <span class="font-bold text-green-700 text-sm">{{ currencySymbol }}{{ (product.default_selling_price -
-                    product.buying_price).toFixed(2) }}</span>
+                  <span class="font-bold text-green-700 text-sm">{{ currencySymbol }}{{ formatAmount(product.default_selling_price - product.buying_price) }}</span>
                 </div>
               </div>
             </div>
@@ -471,7 +470,7 @@ onMounted(() => {
               <label class="block text-sm font-medium text-gray-700 mb-1">Expected Selling Price</label>
               <div class="relative">
                 <span class="absolute left-3 top-2 text-gray-500 text-sm">{{ currencySymbol }}</span>
-                <input :value="expectedSellingPrice.toFixed(2)" type="text"
+                <input :value="formatAmount(expectedSellingPrice)" type="text"
                   class="w-full border border-gray-100 bg-blue-50/50 text-blue-700 font-bold rounded-lg pl-8 pr-3 py-2 text-sm cursor-not-allowed"
                   disabled>
               </div>

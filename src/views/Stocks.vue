@@ -11,12 +11,13 @@ const selectedProduct = ref(null);
 const showViewModal = ref(false);
 
 
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 async function loadSettings() {
     try {
         const settings = await invoke('get_settings');
-        const currency = settings.find(s => s.key === 'currency_symbol');
-        if (currency) currencySymbol.value = currency.value;
+        if (settings && settings.currency_symbol) {
+            currencySymbol.value = settings.currency_symbol;
+        }
     } catch (err) {
         console.error("Failed to load settings", err);
     }

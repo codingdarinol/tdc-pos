@@ -6,6 +6,7 @@ import { confirm } from '@tauri-apps/plugin-dialog';
 import ProductDetailsModal from '../components/ProductDetailsModal.vue';
 import { logActivity } from '../utils/activityLogger';
 import { useAuthStore } from '../stores/auth';
+import { formatAmount, formatNumber } from '../utils/numberFormat';
 
 const auth = useAuthStore();
 
@@ -16,7 +17,7 @@ const cart = ref([]);
 const showDetailsModal = ref(false);
 const selectedPurchase = ref(null);
 const searchQuery = ref("");
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 const showProductDetails = ref(false);
 const selectedProductDetails = ref(null);
 const editingPurchaseId = ref(null);
@@ -360,15 +361,14 @@ onMounted(() => {
               <div class="flex justify-between items-center mt-auto pt-2 border-t border-gray-50">
                 <div class="flex flex-col">
                   <span class="text-[10px] uppercase text-gray-400 font-black tracking-widest">Avg Cost</span>
-                  <span class="text-blue-600 font-black text-sm">{{ currencySymbol }}{{ (product.buying_price ||
-                    0).toFixed(2) }}</span>
+                  <span class="text-blue-600 font-black text-sm">{{ currencySymbol }}{{ formatAmount(product.buying_price) }}</span>
                 </div>
                 <div class="text-right">
                   <span
                     class="text-[10px] uppercase text-gray-400 font-black tracking-widest block text-left">Stock</span>
                   <span
                     class="text-xs px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 font-bold border border-gray-200">
-                    {{ product.stock_quantity }}
+                    {{ formatNumber(product.stock_quantity) }}
                   </span>
                 </div>
               </div>
@@ -396,7 +396,7 @@ onMounted(() => {
         <div
           class="p-4 border-b bg-gray-900 text-white font-black text-xs uppercase tracking-widest flex justify-between items-center">
           <span>Purchase Cart</span>
-          <span class="bg-white/20 px-2 py-1 rounded-lg text-[10px]">{{ cart.length }} Items</span>
+          <span class="bg-white/20 px-2 py-1 rounded-lg text-[10px]">{{ formatNumber(cart.length) }} Items</span>
         </div>
 
         <!-- Supplier & Invoice Info -->
@@ -488,12 +488,11 @@ onMounted(() => {
               <div class="flex flex-col text-left">
                 <span class="text-[9px] uppercase text-amber-500 font-black tracking-widest">Landed Cost/Unit</span>
                 <span class="text-xs font-black text-amber-600 font-mono">{{ currencySymbol }}{{
-                  (item.purchase_unit_cost || 0).toFixed(2) }}</span>
+                  formatAmount(item.purchase_unit_cost || 0) }}</span>
               </div>
               <div class="text-right">
                 <span class="text-[9px] uppercase text-gray-400 font-black tracking-widest block">Line Total</span>
-                <span class="font-black text-sm text-gray-900 font-mono">{{ currencySymbol }}{{ (item.subtotal ||
-                  0).toFixed(2) }}</span>
+                <span class="font-black text-sm text-gray-900 font-mono">{{ currencySymbol }}{{ formatAmount(item.subtotal || 0) }}</span>
               </div>
             </div>
           </div>
@@ -523,7 +522,7 @@ onMounted(() => {
         <div class="p-5 bg-gradient-to-t from-gray-50 to-white border-t space-y-4">
           <div class="flex justify-between items-center text-left">
             <span class="text-xs font-black text-gray-400 uppercase tracking-widest">Grand Total</span>
-            <span class="text-3xl font-black text-gray-900 font-mono">{{ currencySymbol }}{{ totalAmount.toFixed(2)
+            <span class="text-3xl font-black text-gray-900 font-mono">{{ currencySymbol }}{{ formatAmount(totalAmount)
             }}</span>
           </div>
           <button @click="savePurchase" :disabled="cart.length === 0"
@@ -557,8 +556,7 @@ onMounted(() => {
             <td
               class="p-4 text-gray-500 text-xs font-bold bg-gray-50/50 my-2 inline-block rounded-lg px-2 border border-gray-100">
               {{ purchase.invoice_number || 'No INV' }}</td>
-            <td class="p-4 text-right font-black text-gray-900 font-mono">{{ currencySymbol }}{{ (purchase.total_amount
-              || 0).toFixed(2) }}</td>
+            <td class="p-4 text-right font-black text-gray-900 font-mono">{{ currencySymbol }}{{ formatAmount(purchase.total_amount || 0) }}</td>
             <td class="p-4 text-gray-400 text-xs italic truncate max-w-[150px]">{{ purchase.notes || '—' }}</td>
             <td class="p-4 text-center">
               <div class="flex justify-center gap-2">
@@ -626,15 +624,14 @@ onMounted(() => {
             <tbody class="divide-y divide-gray-50">
               <tr v-for="item in selectedPurchase.items" :key="item.id" class="hover:bg-white transition-colors">
                 <td class="p-3 font-extrabold text-gray-900 text-sm">{{ item.product_name }}</td>
-                <td class="p-3 text-right font-mono text-xs">{{ item.quantity }}</td>
-                <td class="p-3 text-right font-mono text-xs">{{ currencySymbol }}{{ (item.buying_price || 0).toFixed(2)
+                <td class="p-3 text-right font-mono text-xs">{{ formatNumber(item.quantity) }}</td>
+                <td class="p-3 text-right font-mono text-xs">{{ currencySymbol }}{{ formatAmount(item.buying_price || 0)
                 }}</td>
-                <td class="p-3 text-right text-amber-600 font-mono text-xs">{{ currencySymbol }}{{ (item.extra_charge ||
-                  0).toFixed(2) }}</td>
+                <td class="p-3 text-right text-amber-600 font-mono text-xs">{{ currencySymbol }}{{ formatAmount(item.extra_charge || 0) }}</td>
                 <td class="p-3 text-right font-black text-blue-600 font-mono text-xs">{{ currencySymbol }}{{
-                  (item.purchase_unit_cost || item.buying_price).toFixed(2) }}</td>
+                  formatAmount(item.purchase_unit_cost || item.buying_price) }}</td>
                 <td class="p-3 text-right font-black text-gray-900 font-mono text-sm">{{ currencySymbol }}{{
-                  (item.subtotal || 0).toFixed(2) }}</td>
+                  formatAmount(item.subtotal || 0) }}</td>
               </tr>
             </tbody>
           </table>
@@ -652,7 +649,7 @@ onMounted(() => {
               <span class="text-xs text-gray-500 italic">Incl. all extra charges</span>
             </div>
             <div class="text-3xl font-black text-gray-900 font-mono">{{ currencySymbol }}{{
-              (selectedPurchase.total_amount || 0).toFixed(2) }}</div>
+              formatAmount(selectedPurchase.total_amount || 0) }}</div>
           </div>
         </div>
 

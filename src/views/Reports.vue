@@ -1,8 +1,9 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatAmount, formatNumber, formatPercent } from '../utils/numberFormat';
 
 const currentTab = ref('sales');
 const startDate = ref(new Date().toISOString().split('T')[0]);
@@ -12,8 +13,15 @@ const searchQuery = ref('');
 const salesData = ref([]);
 const inventoryData = ref([]);
 const expensesData = ref([]);
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 const loading = ref(false);
+const exportNotice = ref({
+  visible: false,
+  type: 'success',
+  title: '',
+  lines: []
+});
+let exportNoticeTimer = null;
 
 // --- Sales Computed ---
 const filteredSales = computed(() => {
@@ -93,47 +101,74 @@ async function loadReport() {
   }
 }
 
+function closeExportNotice() {
+  exportNotice.value.visible = false;
+  if (exportNoticeTimer) {
+    clearTimeout(exportNoticeTimer);
+    exportNoticeTimer = null;
+  }
+}
+
+function showExportNotice(type, title, lines = []) {
+  closeExportNotice();
+  exportNotice.value = { visible: true, type, title, lines };
+  exportNoticeTimer = setTimeout(() => {
+    exportNotice.value.visible = false;
+    exportNoticeTimer = null;
+  }, 5000);
+}
+
 function exportPDF() {
-  const doc = new jsPDF();
-  const now = new Date().toLocaleDateString();
+  try {
+    const doc = new jsPDF();
+    const now = new Date().toLocaleDateString();
+    let fileName = '';
 
-  if (currentTab.value === 'sales') {
-    doc.setFontSize(16);
-    doc.text(`Sales & Profit Report`, 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Period: ${startDate.value} to ${endDate.value} | Generated: ${now}`, 14, 22);
-    doc.text(`Total Sales: ${currencySymbol.value}${totalSales.value.toFixed(2)} | Net Profit: ${currencySymbol.value}${totalProfit.value.toFixed(2)} | Expenses: ${currencySymbol.value}${totalExpenses.value.toFixed(2)} | Orders: ${totalOrderCount.value}`, 14, 28);
+    if (currentTab.value === 'sales') {
+      doc.setFontSize(16);
+      doc.text(`Sales & Profit Report`, 14, 15);
+      doc.setFontSize(9);
+      doc.text(`Period: ${startDate.value} to ${endDate.value} | Generated: ${now}`, 14, 22);
+      doc.text(`Total Sales: ${currencySymbol.value}${formatAmount(totalSales.value)} | Net Profit: ${currencySymbol.value}${formatAmount(totalProfit.value)} | Expenses: ${currencySymbol.value}${formatAmount(totalExpenses.value)} | Orders: ${formatNumber(totalOrderCount.value)}`, 14, 28);
 
-    autoTable(doc, {
-      startY: 34,
-      head: [['Date', 'Order #', 'Customer', 'Items', 'Discount', 'Total', 'Profit']],
-      body: filteredSales.value.map(row => [
-        row.date, `#${row.order_id}`, row.customer || '-', row.items_count,
-        row.discount.toFixed(2), row.total.toFixed(2), row.profit.toFixed(2)
-      ]),
-      foot: [['', '', 'TOTALS', totalItemsSold.value, totalDiscount.value.toFixed(2), totalSales.value.toFixed(2), totalProfit.value.toFixed(2)]],
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [59, 130, 246] },
-      footStyles: { fillColor: [229, 231, 235], textColor: [31, 41, 55], fontStyle: 'bold' },
-    });
-    doc.save(`sales-report-${startDate.value}-to-${endDate.value}.pdf`);
-  } else {
-    doc.setFontSize(16);
-    doc.text(`Inventory Valuation Report`, 14, 15);
-    doc.setFontSize(9);
-    doc.text(`Generated: ${now} | Stock Value: ${currencySymbol.value}${totalStockValue.value.toFixed(2)} | Retail Value: ${currencySymbol.value}${totalRetailValue.value.toFixed(2)}`, 14, 22);
+      autoTable(doc, {
+        startY: 34,
+        head: [['Date', 'Order #', 'Customer', 'Items', 'Discount', 'Total', 'Profit']],
+        body: filteredSales.value.map(row => [
+          row.date, `#${row.order_id}`, row.customer || '-', formatNumber(row.items_count),
+          formatAmount(row.discount), formatAmount(row.total), formatAmount(row.profit)
+        ]),
+        foot: [['', '', 'TOTALS', formatNumber(totalItemsSold.value), formatAmount(totalDiscount.value), formatAmount(totalSales.value), formatAmount(totalProfit.value)]],
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: { fillColor: [229, 231, 235], textColor: [31, 41, 55], fontStyle: 'bold' },
+      });
+      fileName = `sales-report-${startDate.value}-to-${endDate.value}.pdf`;
+      doc.save(fileName);
+    } else {
+      doc.setFontSize(16);
+      doc.text(`Inventory Valuation Report`, 14, 15);
+      doc.setFontSize(9);
+      doc.text(`Generated: ${now} | Stock Value: ${currencySymbol.value}${formatAmount(totalStockValue.value)} | Retail Value: ${currencySymbol.value}${formatAmount(totalRetailValue.value)}`, 14, 22);
 
-    autoTable(doc, {
-      startY: 28,
-      head: [['Product', 'Category', 'Stock', 'Unit', 'Cost', 'Sell Price', 'Total Value']],
-      body: filteredInventory.value.map(row => [
-        row.name, row.category || '-', row.stock, row.unit || 'pcs',
-        row.cost_price.toFixed(2), row.selling_price.toFixed(2), row.stock_value.toFixed(2)
-      ]),
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [139, 92, 246] },
-    });
-    doc.save(`inventory-report-${now}.pdf`);
+      autoTable(doc, {
+        startY: 28,
+        head: [['Product', 'Category', 'Stock', 'Unit', 'Cost', 'Sell Price', 'Total Value']],
+        body: filteredInventory.value.map(row => [
+          row.name, row.category || '-', formatNumber(row.stock), row.unit || 'pcs',
+          formatAmount(row.cost_price), formatAmount(row.selling_price), formatAmount(row.stock_value)
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [139, 92, 246] },
+      });
+      fileName = `inventory-report-${now}.pdf`;
+      doc.save(fileName);
+    }
+
+    showExportNotice('success', 'Report exported successfully', [fileName]);
+  } catch (error) {
+    console.error('Failed to export report:', error);
+    showExportNotice('error', 'Failed to export report', [String(error?.message || error || 'Unknown error')]);
   }
 }
 
@@ -141,6 +176,12 @@ onMounted(() => {
   const date = new Date();
   startDate.value = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
   loadReport();
+});
+
+onBeforeUnmount(() => {
+  if (exportNoticeTimer) {
+    clearTimeout(exportNoticeTimer);
+  }
 });
 </script>
 
@@ -210,62 +251,55 @@ onMounted(() => {
     <div v-if="currentTab === 'sales'" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
       <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-blue-500 uppercase tracking-widest">Total Revenue</div>
-        <div class="text-xl font-black text-blue-800 mt-1">{{ currencySymbol }}{{ totalSales.toLocaleString(undefined,
-          { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-xl font-black text-blue-800 mt-1">{{ currencySymbol }}{{ formatAmount(totalSales) }}</div>
       </div>
       <div class="bg-green-50 border border-green-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-green-500 uppercase tracking-widest">Net Profit</div>
-        <div class="text-xl font-black text-green-800 mt-1">{{ currencySymbol }}{{ totalProfit.toLocaleString(undefined,
-          { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-xl font-black text-green-800 mt-1">{{ currencySymbol }}{{ formatAmount(totalProfit) }}</div>
       </div>
       <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-amber-500 uppercase tracking-widest">Discounts Given</div>
-        <div class="text-xl font-black text-amber-800 mt-1">{{ currencySymbol }}{{
-          totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-xl font-black text-amber-800 mt-1">{{ currencySymbol }}{{ formatAmount(totalDiscount) }}</div>
       </div>
       <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Total Orders</div>
-        <div class="text-xl font-black text-indigo-800 mt-1">{{ totalOrderCount }}</div>
+        <div class="text-xl font-black text-indigo-800 mt-1">{{ formatNumber(totalOrderCount) }}</div>
       </div>
       <div class="bg-purple-50 border border-purple-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-purple-500 uppercase tracking-widest">Avg Order Value</div>
-        <div class="text-xl font-black text-purple-800 mt-1">{{ currencySymbol }}{{ avgOrderValue.toFixed(2) }}</div>
+        <div class="text-xl font-black text-purple-800 mt-1">{{ currencySymbol }}{{ formatAmount(avgOrderValue) }}</div>
       </div>
       <!-- Expenses Card -->
       <div class="bg-rose-50 border border-rose-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-rose-500 uppercase tracking-widest">Total Expenses</div>
-        <div class="text-xl font-black text-rose-800 mt-1">{{ currencySymbol }}{{
-          totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-xl font-black text-rose-800 mt-1">{{ currencySymbol }}{{ formatAmount(totalExpenses) }}</div>
       </div>
       <div class="bg-teal-50 border border-teal-100 p-4 rounded-2xl text-left">
         <div class="text-[10px] font-black text-teal-500 uppercase tracking-widest">Profit Margin</div>
-        <div class="text-xl font-black text-teal-800 mt-1">{{ profitMargin.toFixed(1) }}%</div>
+        <div class="text-xl font-black text-teal-800 mt-1">{{ formatPercent(profitMargin) }}%</div>
       </div>
     </div>
 
     <div v-if="currentTab === 'inventory'" class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
       <div class="bg-purple-50 border border-purple-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
         <div class="text-[9px] sm:text-[10px] font-black text-purple-500 uppercase tracking-widest truncate">Cost Value</div>
-        <div class="text-lg sm:text-xl font-black text-purple-800 mt-1 truncate">{{ currencySymbol }}{{
-          totalStockValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-lg sm:text-xl font-black text-purple-800 mt-1 truncate">{{ currencySymbol }}{{ formatAmount(totalStockValue) }}</div>
       </div>
       <div class="bg-blue-50 border border-blue-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
         <div class="text-[9px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest truncate">Retail Value</div>
-        <div class="text-lg sm:text-xl font-black text-blue-800 mt-1 truncate">{{ currencySymbol }}{{
-          totalRetailValue.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-lg sm:text-xl font-black text-blue-800 mt-1 truncate">{{ currencySymbol }}{{ formatAmount(totalRetailValue) }}</div>
       </div>
       <div class="col-span-2 sm:col-span-1 bg-green-50 border border-green-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
         <div class="text-[9px] sm:text-[10px] font-black text-green-500 uppercase tracking-widest truncate">Potential Profit</div>
-        <div class="text-lg sm:text-xl font-black text-green-800 mt-1 truncate">{{ currencySymbol }}{{
-          totalPotentialProfit.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</div>
+        <div class="text-lg sm:text-xl font-black text-green-800 mt-1 truncate">{{ currencySymbol }}{{ formatAmount(totalPotentialProfit) }}</div>
       </div>
       <div class="bg-red-50 border border-red-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
         <div class="text-[9px] sm:text-[10px] font-black text-red-500 uppercase tracking-widest truncate">Out of Stock</div>
-        <div class="text-lg sm:text-xl font-black text-red-800 mt-1 truncate">{{ outOfStockCount }}</div>
+        <div class="text-lg sm:text-xl font-black text-red-800 mt-1 truncate">{{ formatNumber(outOfStockCount) }}</div>
       </div>
       <div class="bg-amber-50 border border-amber-100 p-3 sm:p-4 rounded-xl sm:rounded-2xl text-left">
         <div class="text-[9px] sm:text-[10px] font-black text-amber-500 uppercase tracking-widest truncate">Low Stock</div>
-        <div class="text-lg sm:text-xl font-black text-amber-800 mt-1 truncate">{{ lowStockCount }}</div>
+        <div class="text-lg sm:text-xl font-black text-amber-800 mt-1 truncate">{{ formatNumber(lowStockCount) }}</div>
       </div>
     </div>
 
@@ -297,14 +331,14 @@ onMounted(() => {
               <td class="px-5 py-3.5">{{ item.customer || '—' }}</td>
               <td class="px-5 py-3.5 text-center">
                 <span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-[10px] font-black">{{
-                  item.items_count }}</span>
+                  formatNumber(item.items_count) }}</span>
               </td>
               <td class="px-5 py-3.5 text-right text-amber-600 text-xs">{{ item.discount > 0 ?
-                `-${currencySymbol}${item.discount.toFixed(2)}` : '—' }}</td>
-              <td class="px-5 py-3.5 text-right font-bold">{{ currencySymbol }}{{ item.total.toFixed(2) }}</td>
+                `-${currencySymbol}${formatAmount(item.discount)}` : '—' }}</td>
+              <td class="px-5 py-3.5 text-right font-bold">{{ currencySymbol }}{{ formatAmount(item.total) }}</td>
               <td class="px-5 py-3.5 text-right font-black"
                 :class="item.profit >= 0 ? 'text-green-600' : 'text-red-500'">
-                {{ currencySymbol }}{{ item.profit.toFixed(2) }}
+                {{ currencySymbol }}{{ formatAmount(item.profit) }}
               </td>
             </tr>
             <tr v-if="filteredSales.length === 0">
@@ -317,11 +351,11 @@ onMounted(() => {
           </tbody>
           <tfoot v-if="filteredSales.length > 0" class="bg-gray-50 font-black text-sm sticky bottom-0">
             <tr>
-              <td class="px-5 py-4 text-gray-500" colspan="3">TOTALS ({{ totalOrderCount }} orders)</td>
-              <td class="px-5 py-4 text-center text-gray-700">{{ totalItemsSold }}</td>
-              <td class="px-5 py-4 text-right text-amber-600">{{ currencySymbol }}{{ totalDiscount.toFixed(2) }}</td>
-              <td class="px-5 py-4 text-right text-blue-700">{{ currencySymbol }}{{ totalSales.toFixed(2) }}</td>
-              <td class="px-5 py-4 text-right text-green-700">{{ currencySymbol }}{{ totalProfit.toFixed(2) }}</td>
+              <td class="px-5 py-4 text-gray-500" colspan="3">TOTALS ({{ formatNumber(totalOrderCount) }} orders)</td>
+              <td class="px-5 py-4 text-center text-gray-700">{{ formatNumber(totalItemsSold) }}</td>
+              <td class="px-5 py-4 text-right text-amber-600">{{ currencySymbol }}{{ formatAmount(totalDiscount) }}</td>
+              <td class="px-5 py-4 text-right text-blue-700">{{ currencySymbol }}{{ formatAmount(totalSales) }}</td>
+              <td class="px-5 py-4 text-right text-green-700">{{ currencySymbol }}{{ formatAmount(totalProfit) }}</td>
             </tr>
           </tfoot>
         </table>
@@ -354,23 +388,40 @@ onMounted(() => {
               <td class="px-5 py-3.5 text-center">
                 <span class="px-2 py-0.5 rounded-full text-[11px] font-black"
                   :class="item.stock <= 0 ? 'bg-red-100 text-red-600' : item.stock <= 5 ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'">
-                  {{ item.stock }} {{ item.unit || 'pcs' }}
+                  {{ formatNumber(item.stock) }} {{ item.unit || 'pcs' }}
                 </span>
               </td>
-              <td class="px-5 py-3.5 text-right text-gray-600">{{ currencySymbol }}{{ item.cost_price.toFixed(2) }}</td>
-              <td class="px-5 py-3.5 text-right font-bold">{{ currencySymbol }}{{ item.selling_price.toFixed(2) }}</td>
+              <td class="px-5 py-3.5 text-right text-gray-600">{{ currencySymbol }}{{ formatAmount(item.cost_price) }}</td>
+              <td class="px-5 py-3.5 text-right font-bold">{{ currencySymbol }}{{ formatAmount(item.selling_price) }}</td>
               <td class="px-5 py-3.5 text-right">
                 <span class="font-black text-xs"
                   :class="item.selling_price > item.cost_price ? 'text-green-600' : 'text-red-500'">
-                  {{ item.cost_price > 0 ? (((item.selling_price - item.cost_price) / item.cost_price) * 100).toFixed(1)
+                  {{ item.cost_price > 0 ? formatPercent(((item.selling_price - item.cost_price) / item.cost_price) * 100)
                     : '—' }}%
                 </span>
               </td>
               <td class="px-5 py-3.5 text-right font-black text-purple-700">{{ currencySymbol }}{{
-                item.stock_value.toFixed(2) }}</td>
+                formatAmount(item.stock_value) }}</td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <div v-if="exportNotice.visible"
+      class="fixed right-4 bottom-4 z-[120] w-[min(560px,calc(100vw-2rem))] rounded-2xl border px-4 py-3 shadow-2xl"
+      :class="exportNotice.type === 'success'
+        ? 'bg-emerald-500 border-emerald-400 text-white'
+        : 'bg-rose-500 border-rose-400 text-white'">
+      <div class="flex items-start gap-3">
+        <span class="text-xl leading-none">{{ exportNotice.type === 'success' ? '✓' : '!' }}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-lg font-black leading-tight">{{ exportNotice.title }}</p>
+          <p v-for="(line, idx) in exportNotice.lines" :key="idx" class="mt-1 text-sm font-semibold break-all">
+            {{ line }}
+          </p>
+        </div>
+        <button @click="closeExportNotice" class="text-white/90 hover:text-white text-2xl leading-none">×</button>
       </div>
     </div>
   </div>
