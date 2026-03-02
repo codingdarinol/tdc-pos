@@ -388,8 +388,8 @@ onMounted(() => {
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col my-4">
         <button @click="closeModal"
           class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">✕</button>
-        <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 shrink-0 pr-8">{{ isEditing ? 'Edit Product' : 'Add
-          New Product' }}
+        <h2 class="text-lg sm:text-xl font-bold mb-4 text-gray-800 shrink-0 pr-8">
+          {{ isEditing ? 'Edit Product' : 'Add ' + 'New Product' }}
         </h2>
 
         <div class="overflow-y-auto flex-1 pr-1">
@@ -463,7 +463,7 @@ onMounted(() => {
                   disabled>
               </div>
               <span class="text-[10px] text-blue-600 font-medium italic">Buy Price + {{ form.profit_percentage
-                }}%</span>
+              }}%</span>
             </div>
 
             <div>
