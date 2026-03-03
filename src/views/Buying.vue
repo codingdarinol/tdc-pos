@@ -39,6 +39,27 @@ const filteredProducts = computed(() => {
   );
 });
 
+function getItemTax(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.buying_price) || 0;
+  const taxRate = Number(item.tax_rate) || 0;
+  if (qty <= 0 || price <= 0 || taxRate <= 0) return 0;
+  return (qty * price * taxRate) / 100;
+}
+
+const subtotalBeforeTax = computed(() => {
+  return cart.value.reduce((sum, item) => {
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.buying_price) || 0;
+    const extra = Number(item.extra_charge) || 0;
+    return sum + (qty * price) + extra;
+  }, 0);
+});
+
+const totalTax = computed(() => {
+  return cart.value.reduce((sum, item) => sum + (Number(item.tax_amount) || 0), 0);
+});
+
 const totalAmount = computed(() => {
   return cart.value.reduce((sum, item) => sum + (item.subtotal || 0), 0);
 });
@@ -97,9 +118,12 @@ function addToCart(product) {
     quantity: 1,
     buying_price: product.buying_price, // Unit Price input
     extra_charge: 0,
+    tax_rate: Number(product.tax_percentage) || 0,
+    tax_amount: (Number(product.buying_price) || 0) * (Number(product.tax_percentage) || 0) / 100,
     subtotal: product.buying_price,
     purchase_unit_cost: product.buying_price
   };
+  recalculateItem(newItem);
   cart.value.push(newItem);
 }
 
@@ -107,12 +131,14 @@ function recalculateItem(item) {
   const qty = Number(item.quantity) || 0;
   const price = Number(item.buying_price) || 0;
   const extra = Number(item.extra_charge) || 0;
+  item.tax_rate = Number(item.tax_rate) || 0;
+  item.tax_amount = getItemTax(item);
 
   if (qty > 0) {
-    item.subtotal = (qty * price) + extra;
+    item.subtotal = (qty * price) + extra + item.tax_amount;
     item.purchase_unit_cost = item.subtotal / qty;
   } else {
-    item.subtotal = extra;
+    item.subtotal = extra + item.tax_amount;
     item.purchase_unit_cost = 0;
   }
 }
@@ -178,6 +204,8 @@ async function savePurchase() {
       quantity: Number(item.quantity),
       buying_price: Number(item.buying_price),
       extra_charge: Number(item.extra_charge),
+      tax_rate: Number(item.tax_rate) || 0,
+      tax_amount: Number(item.tax_amount) || 0,
       subtotal: Number(item.subtotal),
       purchase_unit_cost: Number(item.purchase_unit_cost)
     }));
@@ -230,6 +258,8 @@ async function editPurchase(purchase) {
       quantity: item.quantity,
       buying_price: item.buying_price,
       extra_charge: item.extra_charge,
+      tax_rate: Number(item.tax_rate) || 0,
+      tax_amount: Number(item.tax_amount) || 0,
       subtotal: item.subtotal,
       purchase_unit_cost: item.purchase_unit_cost
     }));
@@ -372,6 +402,9 @@ onMounted(() => {
                   </span>
                 </div>
               </div>
+              <div class="mt-2 text-[10px] text-blue-600 font-bold text-left">
+                Tax: {{ formatNumber(product.tax_percentage || 0) }}%
+              </div>
             </div>
             <!-- Details Button -->
             <button @click.stop="openDetails(product)"
@@ -495,6 +528,9 @@ onMounted(() => {
                 <span class="font-black text-sm text-gray-900 font-mono">{{ currencySymbol }}{{ formatAmount(item.subtotal || 0) }}</span>
               </div>
             </div>
+            <div v-if="item.tax_amount > 0" class="mt-2 text-xs text-blue-600 text-left font-semibold">
+              Pajak {{ formatNumber(item.tax_rate || 0) }}%: {{ currencySymbol }}{{ formatAmount(item.tax_amount || 0) }}
+            </div>
           </div>
 
           <div v-if="cart.length === 0" class="text-center py-16 px-4">
@@ -520,6 +556,16 @@ onMounted(() => {
 
         <!-- Footer -->
         <div class="p-5 bg-gradient-to-t from-gray-50 to-white border-t space-y-4">
+          <div class="space-y-1 text-sm">
+            <div class="flex justify-between text-gray-600">
+              <span>Subtotal</span>
+              <span class="font-mono">{{ currencySymbol }}{{ formatAmount(subtotalBeforeTax) }}</span>
+            </div>
+            <div v-if="totalTax > 0" class="flex justify-between text-blue-600">
+              <span>Pajak Produk</span>
+              <span class="font-mono">+{{ currencySymbol }}{{ formatAmount(totalTax) }}</span>
+            </div>
+          </div>
           <div class="flex justify-between items-center text-left">
             <span class="text-xs font-black text-gray-400 uppercase tracking-widest">Grand Total</span>
             <span class="text-3xl font-black text-gray-900 font-mono">{{ currencySymbol }}{{ formatAmount(totalAmount)
@@ -617,6 +663,7 @@ onMounted(() => {
                 <th class="p-3 text-right">Qty</th>
                 <th class="p-3 text-right">Unit Price</th>
                 <th class="p-3 text-right text-amber-500">Extra</th>
+                <th class="p-3 text-right text-blue-600">Tax</th>
                 <th class="p-3 text-right text-blue-600">Landed</th>
                 <th class="p-3 text-right">Subtotal</th>
               </tr>
@@ -628,6 +675,7 @@ onMounted(() => {
                 <td class="p-3 text-right font-mono text-xs">{{ currencySymbol }}{{ formatAmount(item.buying_price || 0)
                 }}</td>
                 <td class="p-3 text-right text-amber-600 font-mono text-xs">{{ currencySymbol }}{{ formatAmount(item.extra_charge || 0) }}</td>
+                <td class="p-3 text-right text-blue-600 font-mono text-xs">{{ currencySymbol }}{{ formatAmount(item.tax_amount || 0) }}</td>
                 <td class="p-3 text-right font-black text-blue-600 font-mono text-xs">{{ currencySymbol }}{{
                   formatAmount(item.purchase_unit_cost || item.buying_price) }}</td>
                 <td class="p-3 text-right font-black text-gray-900 font-mono text-sm">{{ currencySymbol }}{{

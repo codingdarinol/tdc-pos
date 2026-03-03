@@ -70,9 +70,48 @@ const autoDiscount = computed(() => {
     return sum + Math.max(0, defaultTotal - actualTotal);
   }, 0);
 });
-const grandTotal = computed(() => {
-  return subtotal.value + form.delivery_charge;
+const invoiceSubtotal = computed(() => subtotal.value + autoDiscount.value);
+
+function getItemTax(item) {
+  const qty = Number(item.quantity) || 0;
+  const price = Number(item.selling_price) || 0;
+  const taxRate = Number(item.tax_percentage) || 0;
+  if (qty <= 0 || price <= 0 || taxRate <= 0) return 0;
+  return (qty * price * taxRate) / 100;
+}
+
+const taxAmount = computed(() => {
+  return cart.value.reduce((sum, item) => sum + getItemTax(item), 0);
 });
+const orderTaxRate = computed(() => {
+  if (subtotal.value <= 0) return 0;
+  return (taxAmount.value / subtotal.value) * 100;
+});
+const grandTotal = computed(() => {
+  return subtotal.value + taxAmount.value + form.delivery_charge;
+});
+
+function toInvoiceDateId(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return null;
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}${month}${day}`;
+}
+
+function generateDraftInvoiceNumber(dateValue) {
+  const date = dateValue ? new Date(dateValue) : new Date();
+  const datePart = toInvoiceDateId(date) || toInvoiceDateId(new Date());
+  const timePart = `${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}${String(date.getSeconds()).padStart(2, '0')}`;
+  return `INV-${datePart}-${timePart}`;
+}
+
+function formatSavedInvoiceNumber(orderId, dateValue) {
+  const datePart = toInvoiceDateId(dateValue) || toInvoiceDateId(new Date());
+  const numberPart = String(orderId || 0).padStart(4, '0');
+  return `INV-${datePart}-${numberPart}`;
+}
 
 function applyDisplaySettings(settingsData) {
   if (!settingsData) return;
@@ -97,8 +136,8 @@ function buildCheckoutInvoicePreview() {
   const now = new Date();
   return {
     invoice_number: editingOrderId.value
-      ? `SALE-${editingOrderId.value}`
-      : `DRAFT-${now.getTime().toString().slice(-6)}`,
+      ? formatSavedInvoiceNumber(editingOrderId.value, now)
+      : generateDraftInvoiceNumber(now),
     created_at: now.toISOString(),
     customer_name: form.customer_name || 'Guest',
     customer_phone: form.customer_phone || '',
@@ -108,20 +147,24 @@ function buildCheckoutInvoicePreview() {
     items: cart.value.map(item => ({
       product_name: item.product_name,
       quantity: Number(item.quantity) || 0,
-      selling_price: Number(item.selling_price) || 0,
-      subtotal: Number(item.subtotal) || 0,
+      selling_price: Math.max(Number(item.selling_price) || 0, Number(item.default_selling_price) || 0),
+      subtotal: (Number(item.quantity) || 0) * Math.max(Number(item.selling_price) || 0, Number(item.default_selling_price) || 0),
+      tax_rate: Number(item.tax_percentage) || 0,
+      tax_amount: Number(getItemTax(item)) || 0,
     })),
-    subtotal: Number(subtotal.value) || 0,
+    subtotal: Number(invoiceSubtotal.value) || 0,
     discount: Number(autoDiscount.value) || 0,
+    tax_rate: Number(orderTaxRate.value) || 0,
+    tax_amount: Number(taxAmount.value) || 0,
     delivery_charge: Number(form.delivery_charge) || 0,
-    grand_total: Number(grandTotal.value) || 0,
+    grand_total: (Number(invoiceSubtotal.value) || 0) - (Number(autoDiscount.value) || 0) + (Number(taxAmount.value) || 0) + (Number(form.delivery_charge) || 0),
   };
 }
 
 function buildOrderInvoicePreview(order) {
   if (!order) return null;
   return {
-    invoice_number: `SALE-${order.order_id}`,
+    invoice_number: formatSavedInvoiceNumber(order.order_id, order.order_date),
     created_at: order.order_date || new Date().toISOString(),
     customer_name: order.customer_name || 'Guest',
     customer_phone: order.customer_phone || '',
@@ -133,9 +176,13 @@ function buildOrderInvoicePreview(order) {
       quantity: Number(item.quantity) || 0,
       selling_price: Number(item.selling_price) || 0,
       subtotal: Number(item.subtotal) || 0,
+      tax_rate: Number(item.tax_rate) || 0,
+      tax_amount: Number(item.tax_amount) || 0,
     })),
-    subtotal: Number(order.subtotal) || 0,
+    subtotal: (Number(order.subtotal) || 0) + (Number(order.discount) || 0),
     discount: Number(order.discount) || 0,
+    tax_rate: Number(order.tax_rate) || 0,
+    tax_amount: Number(order.tax_amount) || 0,
     delivery_charge: Number(order.delivery_charge) || 0,
     grand_total: Number(order.grand_total) || 0,
   };
@@ -258,6 +305,7 @@ function addToCart(product) {
       quantity: 1,
       selling_price: product.default_selling_price,
       default_selling_price: product.default_selling_price,
+      tax_percentage: Number(product.tax_percentage) || 0,
       subtotal: product.default_selling_price,
       max_stock: product.stock_quantity
     });
@@ -318,6 +366,8 @@ async function processOrder() {
       extra_charge: 0,
       delivery_charge: form.delivery_charge,
       discount: autoDiscount.value,
+      tax_rate: orderTaxRate.value,
+      tax_amount: taxAmount.value,
       grand_total: grandTotal.value,
       payment_method: form.payment_method,
       notes: form.details
@@ -327,6 +377,8 @@ async function processOrder() {
       product_id: item.product_id,
       quantity: Number(item.quantity),
       selling_price: Number(item.selling_price),
+      tax_rate: Number(item.tax_percentage) || 0,
+      tax_amount: Number(getItemTax(item)) || 0,
       subtotal: Number(item.subtotal),
       buying_price_snapshot: null
     }));
@@ -386,6 +438,7 @@ async function editOrder(order) {
       // To correctly calculate discount autoDiscount later, we need to try to get the original default_selling_price if possible.
       // Easiest is to fall back to the product's current default_selling_price if available, else use selling_price
       default_selling_price: item.selling_price, // Fallback
+      tax_percentage: Number(item.tax_rate) || 0,
       subtotal: item.subtotal,
       max_stock: 99999 // When editing an order, max_stock is complex as we'd need to re-add the old order quantity to current inventory. To simplify for the user, we won't strictly enforce max_stock on edits here, or we set a high limit.
     }));
@@ -560,6 +613,9 @@ onMounted(() => {
             <div v-if="item.selling_price < item.default_selling_price" class="text-xs text-orange-500 mt-1">
               Discount: {{ currencySymbol }}{{ formatAmount((item.default_selling_price - item.selling_price) * item.quantity) }}
             </div>
+            <div v-if="getItemTax(item) > 0" class="text-xs text-blue-600 mt-1">
+              Pajak {{ formatNumber(item.tax_percentage || 0) }}%: {{ currencySymbol }}{{ formatAmount(getItemTax(item)) }}
+            </div>
           </div>
           <div v-if="cart.length === 0" class="text-center text-gray-400 mt-8 text-sm">
             Click products to add to cart
@@ -569,11 +625,15 @@ onMounted(() => {
         <div class="p-3 bg-gray-50 border-t space-y-1 text-sm">
           <div class="flex justify-between text-gray-600">
             <span>Subtotal</span>
-            <span>{{ currencySymbol }}{{ formatAmount(subtotal) }}</span>
+            <span>{{ currencySymbol }}{{ formatAmount(invoiceSubtotal) }}</span>
           </div>
           <div v-if="autoDiscount > 0" class="flex justify-between text-orange-600">
             <span>Price Discount</span>
             <span>-{{ currencySymbol }}{{ formatAmount(autoDiscount) }}</span>
+          </div>
+          <div v-if="taxAmount > 0" class="flex justify-between text-gray-600">
+            <span>Pajak Produk</span>
+            <span>+{{ currencySymbol }}{{ formatAmount(taxAmount) }}</span>
           </div>
           <div class="flex justify-between text-xl font-bold text-gray-800 pt-2 border-t border-gray-200">
             <span>Total</span>
@@ -665,11 +725,15 @@ onMounted(() => {
           <div class="pt-3 border-t space-y-1 text-sm">
             <div class="flex justify-between text-gray-600">
               <span>Subtotal</span>
-              <span>{{ currencySymbol }}{{ formatAmount(subtotal) }}</span>
+              <span>{{ currencySymbol }}{{ formatAmount(invoiceSubtotal) }}</span>
             </div>
             <div v-if="autoDiscount > 0" class="flex justify-between text-orange-600">
               <span>Price Discount</span>
               <span>-{{ currencySymbol }}{{ formatAmount(autoDiscount) }}</span>
+            </div>
+            <div v-if="taxAmount > 0" class="flex justify-between text-gray-600">
+              <span>Pajak Produk</span>
+              <span>+{{ currencySymbol }}{{ formatAmount(taxAmount) }}</span>
             </div>
             <div v-if="form.delivery_charge > 0" class="flex justify-between text-gray-600">
               <span>Delivery</span>
@@ -687,7 +751,7 @@ onMounted(() => {
             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm">Cancel</button>
           <button @click="openInvoicePreviewFromCheckout"
             class="px-5 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 font-bold text-sm">
-            Preview Invoice
+            Pratinjau Invoice
           </button>
           <button @click="processOrder"
             class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-sm">
@@ -743,11 +807,15 @@ onMounted(() => {
         <div class="border-t mt-3 pt-3 space-y-1 text-sm">
           <div class="flex justify-between py-0.5">
             <span class="text-gray-600">Subtotal</span>
-            <span class="font-medium">{{ currencySymbol }}{{ formatAmount(selectedOrder.subtotal) }}</span>
+            <span class="font-medium">{{ currencySymbol }}{{ formatAmount((selectedOrder.subtotal || 0) + (selectedOrder.discount || 0)) }}</span>
           </div>
           <div class="flex justify-between py-0.5" v-if="selectedOrder.discount > 0">
             <span class="text-gray-600">Discount</span>
             <span class="text-red-500">-{{ currencySymbol }}{{ formatAmount(selectedOrder.discount) }}</span>
+          </div>
+          <div class="flex justify-between py-0.5" v-if="selectedOrder.tax_amount > 0">
+            <span class="text-gray-600">Pajak Produk</span>
+            <span class="font-medium">+{{ currencySymbol }}{{ formatAmount(selectedOrder.tax_amount) }}</span>
           </div>
           <div class="flex justify-between py-0.5" v-if="selectedOrder.delivery_charge > 0">
             <span class="text-gray-600">Delivery</span>
@@ -762,7 +830,7 @@ onMounted(() => {
         <div class="mt-4 flex justify-end">
           <button @click="openInvoicePreviewFromOrder"
             class="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 font-bold text-sm">
-            Preview / Print Invoice
+            Pratinjau / Cetak Invoice
           </button>
         </div>
       </div>
@@ -776,9 +844,9 @@ onMounted(() => {
           class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">×</button>
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pr-8">
-          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Invoice Preview</h2>
+          <h2 class="text-lg sm:text-xl font-bold text-gray-800">Pratinjau Invoice</h2>
           <div class="flex items-center gap-2">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Paper</label>
+            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Kertas</label>
             <select v-model="receiptPaperWidth"
               class="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white">
               <option value="80">80mm</option>
@@ -786,7 +854,7 @@ onMounted(() => {
             </select>
             <button @click="printInvoice"
               class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-bold">
-              Print
+              Cetak
             </button>
           </div>
         </div>
@@ -803,14 +871,14 @@ onMounted(() => {
 
               <div class="text-[11px] space-y-1 mb-2">
                 <div class="flex justify-between"><span>No:</span><span class="font-semibold">{{ invoicePreview.invoice_number }}</span></div>
-                <div class="flex justify-between"><span>Date:</span><span>{{ formatInvoiceDate(invoicePreview.created_at) }}</span></div>
-                <div class="flex justify-between"><span>Customer:</span><span class="font-semibold">{{ invoicePreview.customer_name }}</span></div>
-                <div v-if="invoicePreview.customer_phone" class="flex justify-between"><span>Phone:</span><span>{{ invoicePreview.customer_phone }}</span></div>
-                <div class="flex justify-between"><span>Payment:</span><span class="uppercase">{{ invoicePreview.payment_method }}</span></div>
+                <div class="flex justify-between"><span>Tanggal:</span><span>{{ formatInvoiceDate(invoicePreview.created_at) }}</span></div>
+                <div class="flex justify-between"><span>Pelanggan:</span><span class="font-semibold">{{ invoicePreview.customer_name }}</span></div>
+                <div v-if="invoicePreview.customer_phone" class="flex justify-between"><span>Telepon:</span><span>{{ invoicePreview.customer_phone }}</span></div>
+                <div class="flex justify-between"><span>Pembayaran:</span><span class="uppercase">{{ invoicePreview.payment_method }}</span></div>
               </div>
 
               <div class="border-t border-b border-dashed border-gray-300 py-1 mb-1 text-[11px] font-bold grid grid-cols-[1fr_auto_auto] gap-2">
-                <span>Item</span>
+                <span>Produk</span>
                 <span class="text-right">Qty</span>
                 <span class="text-right">Subtotal</span>
               </div>
@@ -832,11 +900,15 @@ onMounted(() => {
                   <span>{{ currencySymbol }}{{ formatAmount(invoicePreview.subtotal) }}</span>
                 </div>
                 <div v-if="invoicePreview.discount > 0" class="flex justify-between text-red-600">
-                  <span>Discount</span>
+                  <span>Diskon</span>
                   <span>-{{ currencySymbol }}{{ formatAmount(invoicePreview.discount) }}</span>
                 </div>
+                <div v-if="invoicePreview.tax_amount > 0" class="flex justify-between">
+                  <span>Pajak Produk</span>
+                  <span>+{{ currencySymbol }}{{ formatAmount(invoicePreview.tax_amount) }}</span>
+                </div>
                 <div v-if="invoicePreview.delivery_charge > 0" class="flex justify-between">
-                  <span>Delivery</span>
+                  <span>Ongkir</span>
                   <span>+{{ currencySymbol }}{{ formatAmount(invoicePreview.delivery_charge) }}</span>
                 </div>
                 <div class="flex justify-between font-black text-sm border-t border-gray-200 pt-1 mt-1">
@@ -846,11 +918,11 @@ onMounted(() => {
               </div>
 
               <div v-if="invoicePreview.notes" class="mt-2 text-[10px] text-gray-600 border-t border-dashed border-gray-300 pt-2">
-                <span class="font-bold">Notes:</span> {{ invoicePreview.notes }}
+                <span class="font-bold">Catatan:</span> {{ invoicePreview.notes }}
               </div>
 
               <div class="mt-3 text-center text-[10px] text-gray-500 border-t border-dashed border-gray-300 pt-2">
-                Thank you for your purchase
+                Terima kasih atas pembelian Anda
               </div>
             </div>
           </div>

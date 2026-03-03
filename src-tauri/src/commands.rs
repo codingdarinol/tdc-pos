@@ -286,13 +286,15 @@ pub fn create_purchase(purchase: Purchase, items: Vec<PurchaseItem>, db: State<D
     // 2. Insert Items and Update Product
     for item in items {
         tx.execute(
-            "INSERT INTO purchase_items (purchase_id, product_id, quantity, buying_price, extra_charge, subtotal, purchase_unit_cost) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO purchase_items (purchase_id, product_id, quantity, buying_price, extra_charge, tax_rate, tax_amount, subtotal, purchase_unit_cost) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 purchase_id,
                 item.product_id,
                 item.quantity,
                 item.buying_price,
                 item.extra_charge,
+                item.tax_rate,
+                item.tax_amount,
                 item.subtotal,
                 item.purchase_unit_cost
             ],
@@ -308,9 +310,9 @@ pub fn create_purchase(purchase: Purchase, items: Vec<PurchaseItem>, db: State<D
         ).map_err(|e| e.to_string())?;
         
         // old_total_value = old_quantity * old_average_cost
-        // new_total_value = (quantity * unit_price) + extra_charge
+        // new_total_value follows saved subtotal (includes item tax/extra, if any)
         let old_total_value = old_quantity * old_average_cost;
-        let new_total_value = (item.quantity * item.buying_price) + item.extra_charge;
+        let new_total_value = item.subtotal;
 
         // updated_total_quantity = old_quantity + quantity
         // updated_total_value = old_total_value + new_total_value
@@ -341,7 +343,7 @@ pub fn create_order(order: Order, items: Vec<OrderItem>, db: State<Database>) ->
     
     // 1. Insert Order
     tx.execute(
-        "INSERT INTO orders (order_date, order_type, customer_name, customer_phone, customer_address, subtotal, extra_charge, delivery_charge, discount, grand_total, payment_method, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        "INSERT INTO orders (order_date, order_type, customer_name, customer_phone, customer_address, subtotal, extra_charge, delivery_charge, discount, tax_rate, tax_amount, grand_total, payment_method, notes) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
         params![
             order.order_date,
             order.order_type,
@@ -352,6 +354,8 @@ pub fn create_order(order: Order, items: Vec<OrderItem>, db: State<Database>) ->
             order.extra_charge,
             order.delivery_charge,
             order.discount,
+            order.tax_rate,
+            order.tax_amount,
             order.grand_total,
             order.payment_method,
             order.notes
@@ -370,12 +374,14 @@ pub fn create_order(order: Order, items: Vec<OrderItem>, db: State<Database>) ->
         ).map_err(|e| e.to_string())?;
         
         tx.execute(
-            "INSERT INTO order_items (order_id, product_id, quantity, selling_price, subtotal, buying_price_snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO order_items (order_id, product_id, quantity, selling_price, tax_rate, tax_amount, subtotal, buying_price_snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 order_id,
                 item.product_id,
                 item.quantity,
                 item.selling_price,
+                item.tax_rate,
+                item.tax_amount,
                 item.subtotal,
                 buying_price
             ],
@@ -424,7 +430,7 @@ pub fn get_purchases(db: State<Database>) -> Result<Vec<Purchase>, String> {
 pub fn get_orders(db: State<Database>) -> Result<Vec<Order>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     
-    let mut stmt = conn.prepare("SELECT order_id, order_date, order_type, customer_name, customer_phone, customer_address, subtotal, extra_charge, delivery_charge, discount, grand_total, payment_method, notes FROM orders ORDER BY order_date DESC").map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare("SELECT order_id, order_date, order_type, customer_name, customer_phone, customer_address, subtotal, extra_charge, delivery_charge, discount, tax_rate, tax_amount, grand_total, payment_method, notes FROM orders ORDER BY order_date DESC").map_err(|e| e.to_string())?;
     
     let orders_iter = stmt.query_map([], |row| {
         Ok(Order {
@@ -438,9 +444,11 @@ pub fn get_orders(db: State<Database>) -> Result<Vec<Order>, String> {
             extra_charge: row.get(7)?,
             delivery_charge: row.get(8)?,
             discount: row.get(9)?,
-            grand_total: row.get(10)?,
-            payment_method: row.get(11)?,
-            notes: row.get(12)?,
+            tax_rate: row.get(10)?,
+            tax_amount: row.get(11)?,
+            grand_total: row.get(12)?,
+            payment_method: row.get(13)?,
+            notes: row.get(14)?,
         })
     }).map_err(|e| e.to_string())?;
     
@@ -705,7 +713,7 @@ pub fn get_purchase_items(purchase_id: i64, db: State<Database>) -> Result<Vec<c
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     
     let mut stmt = conn.prepare("
-        SELECT pi.id, pi.purchase_id, pi.product_id, p.product_name, pi.quantity, pi.buying_price, pi.extra_charge, pi.subtotal, pi.purchase_unit_cost
+        SELECT pi.id, pi.purchase_id, pi.product_id, p.product_name, pi.quantity, pi.buying_price, pi.extra_charge, pi.tax_rate, pi.tax_amount, pi.subtotal, pi.purchase_unit_cost
         FROM purchase_items pi
         JOIN products p ON pi.product_id = p.id
         WHERE pi.purchase_id = ?1
@@ -720,8 +728,10 @@ pub fn get_purchase_items(purchase_id: i64, db: State<Database>) -> Result<Vec<c
             quantity: row.get(4)?,
             buying_price: row.get(5)?,
             extra_charge: row.get(6)?,
-            subtotal: row.get(7)?,
-            purchase_unit_cost: row.get(8)?,
+            tax_rate: row.get(7)?,
+            tax_amount: row.get(8)?,
+            subtotal: row.get(9)?,
+            purchase_unit_cost: row.get(10)?,
         })
     }).map_err(|e| e.to_string())?;
     
@@ -814,7 +824,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
     
     // 1. Get old items to revert stock
     let old_items: Vec<(i64, f64, f64)> = {
-        let mut stmt = tx.prepare("SELECT product_id, quantity, buying_price FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
+        let mut stmt = tx.prepare("SELECT product_id, quantity, purchase_unit_cost FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
         let rows = stmt.query_map(params![purchase_id], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         }).map_err(|e| e.to_string())?;
@@ -827,7 +837,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
     };
 
     // 2. Revert Stock and recalculate buying_price
-    for (product_id, quantity, old_item_price) in old_items {
+    for (product_id, quantity, old_item_unit_cost) in old_items {
         let (current_stock, current_buying_price): (f64, f64) = tx.query_row(
             "SELECT stock_quantity, buying_price FROM products WHERE id = ?1",
             params![product_id],
@@ -838,7 +848,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
         let reverted_stock = current_stock - quantity;
         
         let new_buying_price = if reverted_stock > 0.0 {
-            (old_total_value - (quantity * old_item_price)) / reverted_stock
+            (old_total_value - (quantity * old_item_unit_cost)) / reverted_stock
         } else {
             0.0
         };
@@ -869,13 +879,15 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
     // 5. Insert new items and applying their stock/cost changes
     for item in items {
         tx.execute(
-            "INSERT INTO purchase_items (purchase_id, product_id, quantity, buying_price, extra_charge, subtotal, purchase_unit_cost) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            "INSERT INTO purchase_items (purchase_id, product_id, quantity, buying_price, extra_charge, tax_rate, tax_amount, subtotal, purchase_unit_cost) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 purchase_id,
                 item.product_id,
                 item.quantity,
                 item.buying_price,
                 item.extra_charge,
+                item.tax_rate,
+                item.tax_amount,
                 item.subtotal,
                 item.purchase_unit_cost
             ],
@@ -888,7 +900,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
         ).map_err(|e| e.to_string())?;
         
         let old_total_value = old_quantity * old_average_cost;
-        let new_total_value = (item.quantity * item.buying_price) + item.extra_charge;
+        let new_total_value = item.subtotal;
 
         let updated_total_quantity = old_quantity + item.quantity;
         let updated_total_value = old_total_value + new_total_value;
@@ -941,7 +953,7 @@ pub fn update_order(order_id: i64, order: Order, items: Vec<OrderItem>, db: Stat
     
     // 4. Update Order record
     tx.execute(
-        "UPDATE orders SET order_date = ?1, order_type = ?2, customer_name = ?3, customer_phone = ?4, customer_address = ?5, subtotal = ?6, extra_charge = ?7, delivery_charge = ?8, discount = ?9, grand_total = ?10, payment_method = ?11, notes = ?12 WHERE order_id = ?13",
+        "UPDATE orders SET order_date = ?1, order_type = ?2, customer_name = ?3, customer_phone = ?4, customer_address = ?5, subtotal = ?6, extra_charge = ?7, delivery_charge = ?8, discount = ?9, tax_rate = ?10, tax_amount = ?11, grand_total = ?12, payment_method = ?13, notes = ?14 WHERE order_id = ?15",
         params![
             order.order_date,
             order.order_type,
@@ -952,6 +964,8 @@ pub fn update_order(order_id: i64, order: Order, items: Vec<OrderItem>, db: Stat
             order.extra_charge,
             order.delivery_charge,
             order.discount,
+            order.tax_rate,
+            order.tax_amount,
             order.grand_total,
             order.payment_method,
             order.notes,
@@ -968,12 +982,14 @@ pub fn update_order(order_id: i64, order: Order, items: Vec<OrderItem>, db: Stat
         ).map_err(|e| e.to_string())?;
         
         tx.execute(
-            "INSERT INTO order_items (order_id, product_id, quantity, selling_price, subtotal, buying_price_snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            "INSERT INTO order_items (order_id, product_id, quantity, selling_price, tax_rate, tax_amount, subtotal, buying_price_snapshot) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
             params![
                 order_id,
                 item.product_id,
                 item.quantity,
                 item.selling_price,
+                item.tax_rate,
+                item.tax_amount,
                 item.subtotal,
                 buying_price
             ],
@@ -994,7 +1010,7 @@ pub fn get_order_items(order_id: i64, db: State<Database>) -> Result<Vec<crate::
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     
     let mut stmt = conn.prepare("
-        SELECT oi.id, oi.order_id, oi.product_id, p.product_name, oi.quantity, oi.selling_price, oi.subtotal 
+        SELECT oi.id, oi.order_id, oi.product_id, p.product_name, oi.quantity, oi.selling_price, oi.tax_rate, oi.tax_amount, oi.subtotal 
         FROM order_items oi
         JOIN products p ON oi.product_id = p.id
         WHERE oi.order_id = ?1
@@ -1008,7 +1024,9 @@ pub fn get_order_items(order_id: i64, db: State<Database>) -> Result<Vec<crate::
             product_name: row.get(3)?,
             quantity: row.get(4)?,
             selling_price: row.get(5)?,
-            subtotal: row.get(6)?,
+            tax_rate: row.get(6)?,
+            tax_amount: row.get(7)?,
+            subtotal: row.get(8)?,
         })
     }).map_err(|e| e.to_string())?;
     

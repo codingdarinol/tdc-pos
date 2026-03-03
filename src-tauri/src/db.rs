@@ -66,6 +66,8 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
             product_id INTEGER NOT NULL,
             quantity REAL NOT NULL,
             buying_price REAL NOT NULL,
+            tax_rate REAL DEFAULT 0,
+            tax_amount REAL DEFAULT 0,
             subtotal REAL NOT NULL,
             FOREIGN KEY(purchase_id) REFERENCES purchases(purchase_id),
             FOREIGN KEY(product_id) REFERENCES products(id)
@@ -89,6 +91,8 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
             extra_charge REAL DEFAULT 0,
             delivery_charge REAL DEFAULT 0,
             discount REAL DEFAULT 0,
+            tax_rate REAL DEFAULT 0,
+            tax_amount REAL DEFAULT 0,
             grand_total REAL,
             payment_method TEXT,
             notes TEXT
@@ -100,6 +104,8 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
             product_id INTEGER NOT NULL,
             quantity REAL NOT NULL,
             selling_price REAL NOT NULL,
+            tax_rate REAL DEFAULT 0,
+            tax_amount REAL DEFAULT 0,
             subtotal REAL NOT NULL,
             buying_price_snapshot REAL,
             FOREIGN KEY(order_id) REFERENCES orders(order_id),
@@ -196,6 +202,46 @@ pub fn init_db(app_handle: &AppHandle) -> Result<Connection> {
         }
         if !current_columns.contains("purchase_unit_cost") {
             conn.execute("ALTER TABLE purchase_items ADD COLUMN purchase_unit_cost REAL DEFAULT 0", [])?;
+        }
+        if !current_columns.contains("tax_rate") {
+            conn.execute("ALTER TABLE purchase_items ADD COLUMN tax_rate REAL DEFAULT 0", [])?;
+        }
+        if !current_columns.contains("tax_amount") {
+            conn.execute("ALTER TABLE purchase_items ADD COLUMN tax_amount REAL DEFAULT 0", [])?;
+        }
+    }
+
+    {
+        // Migrations for order_items
+        let mut stmt = conn.prepare("PRAGMA table_info(order_items)")?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+        let mut current_columns = std::collections::HashSet::new();
+        for col_res in rows {
+            current_columns.insert(col_res?);
+        }
+
+        if !current_columns.contains("tax_rate") {
+            conn.execute("ALTER TABLE order_items ADD COLUMN tax_rate REAL DEFAULT 0", [])?;
+        }
+        if !current_columns.contains("tax_amount") {
+            conn.execute("ALTER TABLE order_items ADD COLUMN tax_amount REAL DEFAULT 0", [])?;
+        }
+    }
+
+    {
+        // Migrations for orders
+        let mut stmt = conn.prepare("PRAGMA table_info(orders)")?;
+        let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+        let mut current_columns = std::collections::HashSet::new();
+        for col_res in rows {
+            current_columns.insert(col_res?);
+        }
+
+        if !current_columns.contains("tax_rate") {
+            conn.execute("ALTER TABLE orders ADD COLUMN tax_rate REAL DEFAULT 0", [])?;
+        }
+        if !current_columns.contains("tax_amount") {
+            conn.execute("ALTER TABLE orders ADD COLUMN tax_amount REAL DEFAULT 0", [])?;
         }
     }
 

@@ -50,8 +50,10 @@ async function saveSettings() {
   message.value = "";
 
   try {
-    // Convert reactive object to plain map
-    const settingsMap = { ...settings };
+    // Backend expects HashMap<String, String>, so coerce every value to string.
+    const settingsMap = Object.fromEntries(
+      Object.entries(settings).map(([key, value]) => [key, String(value ?? "")])
+    );
     await invoke('update_settings', { settings: settingsMap });
     await logActivity('SETTINGS', 'Settings', null, `Settings updated: ${Object.keys(settingsMap).join(', ')}`);
     message.value = "Settings saved successfully!";

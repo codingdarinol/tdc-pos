@@ -51,6 +51,10 @@ pub struct PurchaseItem {
     pub quantity: f64,
     pub buying_price: f64, // acts as unit_price
     pub extra_charge: f64,
+    #[serde(default)]
+    pub tax_rate: f64,
+    #[serde(default)]
+    pub tax_amount: f64,
     pub subtotal: f64,      // acts as total_cost (qty * unit_price + extra_charge)
     pub purchase_unit_cost: f64,
 }
@@ -64,6 +68,10 @@ pub struct PurchaseItemDetail {
     pub quantity: f64,
     pub buying_price: f64,
     pub extra_charge: f64,
+    #[serde(default)]
+    pub tax_rate: f64,
+    #[serde(default)]
+    pub tax_amount: f64,
     pub subtotal: f64,
     pub purchase_unit_cost: f64,
 }
@@ -80,6 +88,10 @@ pub struct Order {
     pub extra_charge: f64,
     pub delivery_charge: f64,
     pub discount: f64,
+    #[serde(default)]
+    pub tax_rate: f64,
+    #[serde(default)]
+    pub tax_amount: f64,
     pub grand_total: f64,
     pub payment_method: Option<String>,
     pub notes: Option<String>,
@@ -92,6 +104,10 @@ pub struct OrderItem {
     pub product_id: i64,
     pub quantity: f64,
     pub selling_price: f64,
+    #[serde(default)]
+    pub tax_rate: f64,
+    #[serde(default)]
+    pub tax_amount: f64,
     pub subtotal: f64,
     pub buying_price_snapshot: Option<f64>,
 }
@@ -104,6 +120,10 @@ pub struct OrderItemDetail {
     pub product_name: String,
     pub quantity: f64,
     pub selling_price: f64,
+    #[serde(default)]
+    pub tax_rate: f64,
+    #[serde(default)]
+    pub tax_amount: f64,
     pub subtotal: f64,
 }
 
