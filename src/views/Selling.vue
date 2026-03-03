@@ -23,6 +23,7 @@ const selectedOrder = ref(null);
 const storeName = ref('TDC-POS');
 const storePhone = ref('');
 const storeAddress = ref('');
+const paymentInformation = ref('');
 const currencySymbol = ref('Rp');
 const receiptPaperWidth = ref('80');
 const showInvoicePreview = ref(false);
@@ -124,10 +125,13 @@ function applyDisplaySettings(settingsData) {
   if (settingsData.store_address) {
     storeAddress.value = settingsData.store_address;
   }
+  if (settingsData.payment_information !== undefined && settingsData.payment_information !== null) {
+    paymentInformation.value = settingsData.payment_information;
+  }
   if (settingsData.currency_symbol) {
     currencySymbol.value = settingsData.currency_symbol;
   }
-  if (settingsData.receipt_paper_width === '58' || settingsData.receipt_paper_width === '80') {
+  if (settingsData.receipt_paper_width === '58' || settingsData.receipt_paper_width === '80' || settingsData.receipt_paper_width === 'A4') {
     receiptPaperWidth.value = settingsData.receipt_paper_width;
   }
 }
@@ -839,7 +843,7 @@ onMounted(() => {
     <!-- Invoice Preview + Print Modal -->
     <div v-if="showInvoicePreview && invoicePreview"
       class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[120] p-4">
-      <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col">
+      <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl p-4 sm:p-5 relative max-h-[90vh] flex flex-col">
         <button @click="closeInvoicePreview"
           class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl">×</button>
 
@@ -851,6 +855,7 @@ onMounted(() => {
               class="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white">
               <option value="80">80mm</option>
               <option value="58">58mm</option>
+              <option value="A4">A4</option>
             </select>
             <button @click="printInvoice"
               class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-bold">
@@ -861,8 +866,8 @@ onMounted(() => {
 
         <div class="flex-1 overflow-auto bg-gray-100 rounded-lg p-4">
           <div id="invoice-print-area" class="invoice-paper mx-auto"
-            :class="receiptPaperWidth === '58' ? 'invoice-paper-58' : 'invoice-paper-80'">
-            <div class="invoice-inner">
+            :class="receiptPaperWidth === '58' ? 'invoice-paper-58' : receiptPaperWidth === 'A4' ? 'invoice-paper-a4' : 'invoice-paper-80'">
+            <div v-if="receiptPaperWidth !== 'A4'" class="invoice-inner">
               <div class="text-center border-b border-dashed border-gray-300 pb-2 mb-2">
                 <div class="font-black text-base">{{ storeName }}</div>
                 <div v-if="storePhone" class="text-[11px] text-gray-600">{{ storePhone }}</div>
@@ -925,6 +930,89 @@ onMounted(() => {
                 Terima kasih atas pembelian Anda
               </div>
             </div>
+
+            <div v-else class="invoice-a4">
+              <div class="invoice-a4-header">
+                <div>
+                  <div class="invoice-a4-store">{{ storeName }}</div>
+                  <div v-if="storePhone" class="invoice-a4-meta">{{ storePhone }}</div>
+                  <div v-if="storeAddress" class="invoice-a4-meta whitespace-pre-wrap">{{ storeAddress }}</div>
+                </div>
+                <div class="invoice-a4-title">INVOICE</div>
+              </div>
+
+              <div class="invoice-a4-info">
+                <div>
+                  <div class="invoice-a4-label">BILLED TO</div>
+                  <div class="invoice-a4-value">{{ invoicePreview.customer_name }}</div>
+                  <div v-if="invoicePreview.customer_phone" class="invoice-a4-value">{{ invoicePreview.customer_phone }}</div>
+                  <div v-if="invoicePreview.customer_address" class="invoice-a4-value whitespace-pre-wrap">{{ invoicePreview.customer_address }}</div>
+                </div>
+                <div class="text-right">
+                  <div class="invoice-a4-value">No. {{ invoicePreview.invoice_number }}</div>
+                  <div class="invoice-a4-value">{{ formatInvoiceDate(invoicePreview.created_at) }}</div>
+                  <div class="invoice-a4-value uppercase">{{ invoicePreview.payment_method }}</div>
+                </div>
+              </div>
+
+              <table class="invoice-a4-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th class="text-right">Quantity</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Tax</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, idx) in invoicePreview.items" :key="idx">
+                    <td>{{ item.product_name }}</td>
+                    <td class="text-right">{{ formatNumber(item.quantity) }}</td>
+                    <td class="text-right">{{ currencySymbol }}{{ formatAmount(item.selling_price) }}</td>
+                    <td class="text-right">{{ currencySymbol }}{{ formatAmount(item.tax_amount || 0) }}</td>
+                    <td class="text-right">{{ currencySymbol }}{{ formatAmount(item.subtotal + (item.tax_amount || 0)) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="invoice-a4-totals">
+                <div class="invoice-a4-row">
+                  <span>Subtotal</span>
+                  <span>{{ currencySymbol }}{{ formatAmount(invoicePreview.subtotal) }}</span>
+                </div>
+                <div v-if="invoicePreview.discount > 0" class="invoice-a4-row text-red-600">
+                  <span>Discount</span>
+                  <span>-{{ currencySymbol }}{{ formatAmount(invoicePreview.discount) }}</span>
+                </div>
+                <div v-if="invoicePreview.tax_amount > 0" class="invoice-a4-row">
+                  <span>Tax (Product-based)</span>
+                  <span>+{{ currencySymbol }}{{ formatAmount(invoicePreview.tax_amount) }}</span>
+                </div>
+                <div v-if="invoicePreview.delivery_charge > 0" class="invoice-a4-row">
+                  <span>Delivery</span>
+                  <span>+{{ currencySymbol }}{{ formatAmount(invoicePreview.delivery_charge) }}</span>
+                </div>
+                <div class="invoice-a4-row invoice-a4-total">
+                  <span>Total</span>
+                  <span>{{ currencySymbol }}{{ formatAmount(invoicePreview.grand_total) }}</span>
+                </div>
+              </div>
+
+              <div class="invoice-a4-footer">
+                <div class="invoice-a4-thanks">Thank you!</div>
+
+                <div v-if="paymentInformation" class="invoice-a4-payment">
+                  <div class="invoice-a4-label">PAYMENT INFORMATION</div>
+                  <div class="invoice-a4-value whitespace-pre-wrap">{{ paymentInformation }}</div>
+                </div>
+
+                <div v-if="invoicePreview.notes" class="invoice-a4-notes">
+                  <div class="invoice-a4-label">NOTES</div>
+                  <div class="invoice-a4-value whitespace-pre-wrap">{{ invoicePreview.notes }}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -952,9 +1040,121 @@ onMounted(() => {
   width: 58mm;
 }
 
+.invoice-paper-a4 {
+  width: 210mm;
+  max-width: 100%;
+}
+
 .invoice-inner {
   font-family: "Courier New", monospace;
   padding: 8px;
+}
+
+.invoice-a4 {
+  padding: 18mm 16mm;
+  color: #111827;
+  font-family: "Arial", sans-serif;
+}
+
+.invoice-a4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20mm;
+}
+
+.invoice-a4-store {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.invoice-a4-title {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.invoice-a4-meta {
+  color: #4b5563;
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.invoice-a4-info {
+  display: flex;
+  justify-content: space-between;
+  gap: 12mm;
+  margin-bottom: 12mm;
+}
+
+.invoice-a4-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.invoice-a4-value {
+  font-size: 14px;
+  color: #111827;
+  line-height: 1.4;
+}
+
+.invoice-a4-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10mm;
+}
+
+.invoice-a4-table th,
+.invoice-a4-table td {
+  padding: 9px 8px;
+  border-bottom: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+.invoice-a4-table thead th {
+  border-top: 1px solid #9ca3af;
+  text-align: left;
+  font-weight: 700;
+}
+
+.invoice-a4-totals {
+  margin-left: auto;
+  width: 72mm;
+  margin-bottom: 16mm;
+}
+
+.invoice-a4-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.invoice-a4-total {
+  font-weight: 800;
+  font-size: 30px;
+  border-bottom: none;
+  margin-top: 2mm;
+}
+
+.invoice-a4-footer {
+  margin-top: 14mm;
+}
+
+.invoice-a4-thanks {
+  font-size: 44px;
+  font-weight: 300;
+  margin-bottom: 14mm;
+}
+
+.invoice-a4-payment,
+.invoice-a4-notes {
+  margin-top: 9mm;
 }
 
 @media print {
@@ -974,6 +1174,11 @@ onMounted(() => {
     margin: 0 !important;
     border: none !important;
     box-shadow: none !important;
+  }
+
+  #invoice-print-area.invoice-paper-a4 {
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   @page {
