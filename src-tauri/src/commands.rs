@@ -761,10 +761,10 @@ pub fn delete_purchase(purchase_id: i64, db: State<Database>) -> Result<(), Stri
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     
     // 1. Get items to revert stock
-    let items: Vec<(i64, f64)> = {
-        let mut stmt = tx.prepare("SELECT product_id, quantity FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
+    let items: Vec<(i64, f64, f64)> = {
+        let mut stmt = tx.prepare("SELECT product_id, quantity, subtotal FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
         let rows = stmt.query_map(params![purchase_id], |row| {
-            Ok((row.get(0)?, row.get(1)?))
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         }).map_err(|e| e.to_string())?;
         
         let mut result = Vec::new();
@@ -774,11 +774,26 @@ pub fn delete_purchase(purchase_id: i64, db: State<Database>) -> Result<(), Stri
         result
     };
 
-    // 2. Revert Stock (Subtract what was added)
-    for (product_id, quantity) in items {
+    // 2. Revert Stock and recalculate buying_price
+    for (product_id, quantity, old_subtotal) in items {
+        let (current_stock, current_buying_price): (f64, f64) = tx.query_row(
+            "SELECT stock_quantity, buying_price FROM products WHERE id = ?1",
+            params![product_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        ).map_err(|e| e.to_string())?;
+
+        let old_total_value = current_stock * current_buying_price;
+        let reverted_stock = current_stock - quantity;
+        
+        let new_buying_price = if reverted_stock > 0.0 {
+            (old_total_value - old_subtotal) / reverted_stock
+        } else {
+            0.0
+        };
+
         tx.execute(
-            "UPDATE products SET stock_quantity = stock_quantity - ?1 WHERE id = ?2",
-            params![quantity, product_id],
+            "UPDATE products SET stock_quantity = ?1, buying_price = ?2 WHERE id = ?3",
+            params![reverted_stock, new_buying_price, product_id],
         ).map_err(|e| e.to_string())?;
     }
     
@@ -836,7 +851,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
     
     // 1. Get old items to revert stock
     let old_items: Vec<(i64, f64, f64)> = {
-        let mut stmt = tx.prepare("SELECT product_id, quantity, buying_price FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
+        let mut stmt = tx.prepare("SELECT product_id, quantity, subtotal FROM purchase_items WHERE purchase_id = ?1").map_err(|e| e.to_string())?;
         let rows = stmt.query_map(params![purchase_id], |row| {
             Ok((row.get(0)?, row.get(1)?, row.get(2)?))
         }).map_err(|e| e.to_string())?;
@@ -849,7 +864,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
     };
 
     // 2. Revert Stock and recalculate buying_price
-    for (product_id, quantity, old_item_price) in old_items {
+    for (product_id, quantity, old_subtotal) in old_items {
         let (current_stock, current_buying_price): (f64, f64) = tx.query_row(
             "SELECT stock_quantity, buying_price FROM products WHERE id = ?1",
             params![product_id],
@@ -860,7 +875,7 @@ pub fn update_purchase(purchase_id: i64, purchase: Purchase, items: Vec<Purchase
         let reverted_stock = current_stock - quantity;
         
         let new_buying_price = if reverted_stock > 0.0 {
-            (old_total_value - (quantity * old_item_price)) / reverted_stock
+            (old_total_value - old_subtotal) / reverted_stock
         } else {
             0.0
         };

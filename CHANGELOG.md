@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.2] - 2026-03-15
+
+### Fixed
+
+- **Profit Calculation**: Fixed a system bug where modifying or deleting a purchase corrupted the product's average true cost. The buying cost (`extra_charge`) is now fully accounted for during stock revert operations, restoring absolute precision to the profit margin calculations.
+
+
 ## [0.22.1] - 2026-03-08
 
 ### Fixed
