@@ -12,6 +12,7 @@ const fraudPhone = ref('');
 const fraudResult = ref(null);
 const isLoadingFraud = ref(false);
 const fraudError = ref(null);
+const cloudToken = ref('');
 
 const fraudStats = computed(() => {
   if (!fraudResult.value || !fraudResult.value.data) return null;
@@ -66,9 +67,9 @@ async function checkFraud() {
   fraudResult.value = null;
 
   try {
-    const token = localStorage.getItem('tdc_license_token');
+    const token = cloudToken.value;
     if (!token) {
-      throw new Error('Authentication token missing. Please ensure your license is active.');
+      throw new Error('Fraud checker requires a configured cloud token. This app build no longer manages licenses locally.');
     }
 
     const formData = new FormData();
@@ -113,6 +114,9 @@ async function loadStats() {
     stats.value = statsData;
     if (settingsData && settingsData.currency_symbol) {
       currencySymbol.value = settingsData.currency_symbol;
+    }
+    if (settingsData && settingsData.cloud_token) {
+      cloudToken.value = settingsData.cloud_token;
     }
   } catch (error) {
     console.error("Failed to load dashboard data:", error);

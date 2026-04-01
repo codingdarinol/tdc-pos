@@ -13,6 +13,7 @@ const loading = ref(false);
 const statusMessage = ref('');
 const statusType = ref(''); // 'success', 'error'
 const backups = ref([]);
+const cloudToken = ref('');
 
 // Configuration object simplified as we mostly connect to the API now
 const backupSettings = ref({
@@ -38,7 +39,7 @@ function showStatus(msg, type = 'success') {
 // ----------------- CLOUD API LOGIC -------------------
 
 async function loadCloudBackups() {
-  const token = localStorage.getItem('tdc_license_token');
+  const token = cloudToken.value;
   if (!token) return;
 
   try {
@@ -74,9 +75,9 @@ async function runManualBackup() {
     return;
   }
 
-  const token = localStorage.getItem('tdc_license_token');
+  const token = cloudToken.value;
   if (!token) {
-    showStatus('License token missing! Cannot connect to cloud.', 'error');
+    showStatus('Cloud token missing. Remote backup is unavailable in this build.', 'error');
     return;
   }
 
@@ -149,9 +150,9 @@ async function restoreCloudBackup(item) {
   }
   if (!confirm(`⚠️ RESTORE FROM CLOUD: ${item.name}?\n\nThis will OVERWRITE your current data with the selected cloud backup.\nThe app will restart after restore.\n\nAre you sure?`)) return;
 
-  const token = localStorage.getItem('tdc_license_token');
+  const token = cloudToken.value;
   if (!token) {
-    showStatus('License token missing! Cannot connect to cloud.', 'error');
+    showStatus('Cloud token missing. Remote restore is unavailable in this build.', 'error');
     return;
   }
 
@@ -247,6 +248,7 @@ async function loadSettings() {
     const s = await invoke('get_settings');
     if (s.auto_backup) backupSettings.value.auto_backup = s.auto_backup;
     if (s.backup_schedule) backupSettings.value.backup_schedule = s.backup_schedule;
+    cloudToken.value = s.cloud_token || '';
   } catch (err) {
     console.error("Failed to load settings", err);
   }
@@ -277,8 +279,11 @@ onMounted(async () => {
       <div>
         <h1 class="text-3xl font-black text-gray-900 tracking-tight">Cloud Backup & Restore</h1>
         <p class="text-gray-400 text-sm font-medium">Protect and synchronize your business data securely</p>
+        <p v-if="!cloudToken" class="mt-1 text-xs font-medium text-amber-600">
+          Remote cloud sync is disabled until a `cloud_token` setting is provided.
+        </p>
       </div>
-      <button v-if="!auth.isDemo" @click="runManualBackup" :disabled="loading"
+      <button v-if="!auth.isDemo" @click="runManualBackup" :disabled="loading || !cloudToken"
         class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-8 py-3 rounded-2xl shadow-lg shadow-indigo-500/20 transition-all font-bold text-sm disabled:opacity-50 active:scale-95 flex items-center gap-2">
         <span v-if="!loading">☁️</span>
         <span v-else class="animate-spin">⏳</span>
@@ -395,7 +400,7 @@ onMounted(async () => {
                       formatSize(b.size) }}</span>
                 </td>
                 <td class="px-6 py-4 text-right">
-                  <button v-if="!auth.isDemo" @click="restoreCloudBackup(b)" :disabled="loading"
+                  <button v-if="!auth.isDemo" @click="restoreCloudBackup(b)" :disabled="loading || !cloudToken"
                     class="text-[10px] font-black text-indigo-600 sm:opacity-0 sm:group-hover:opacity-100 transition-all uppercase tracking-widest ring-1 ring-indigo-500/30 hover:bg-indigo-600 hover:text-white hover:ring-indigo-600 shadow-sm px-4 py-2 rounded-xl disabled:opacity-50 inline-flex items-center gap-2">
                     ⬇️ Retrieve
                   </button>
@@ -408,8 +413,9 @@ onMounted(async () => {
             <div class="text-center max-w-sm px-6">
               <div class="text-6xl mb-6 opacity-30 drop-shadow-sm">🧊</div>
               <p class="text-gray-900 font-black text-lg mb-1 tracking-tight">Vast Emptiness</p>
-              <p class="text-gray-500 text-xs leading-relaxed mt-2" v-if="!loading">No server backups are present for
-                your token yet. Press "Upload Cloud Backup" to initialize your first sync.</p>
+              <p class="text-gray-500 text-xs leading-relaxed mt-2" v-if="!loading && cloudToken">No server backups are present for
+                your configured cloud token yet. Press "Upload Cloud Backup" to initialize your first sync.</p>
+              <p class="text-gray-500 text-xs leading-relaxed mt-2" v-else-if="!loading">Remote backups are unavailable because no cloud token is configured.</p>
             </div>
           </div>
         </div>

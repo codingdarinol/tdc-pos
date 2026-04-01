@@ -13,10 +13,8 @@ import Users from '../views/Users.vue'
 import ActivityLog from '../views/ActivityLog.vue'
 import Chat from '../views/Chat.vue'
 import Expenses from '../views/Expenses.vue'
-import License from '../views/License.vue'
 
 const routes = [
-  { path: '/license', component: License, name: 'License', meta: { public: true } },
   { path: '/login', component: Login, name: 'Login', meta: { public: true } },
   { path: '/', component: Dashboard, name: 'Dashboard' },
   { path: '/products', component: Products, name: 'Products', meta: { permission: 'canManageProducts' } },
@@ -39,18 +37,13 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
-  const hasLicense = !!localStorage.getItem('tdc_license_token')
 
-  if (to.name !== 'License' && !hasLicense) {
-    next('/license')
-  } else if (!to.meta.public && !auth.isAuthenticated) {
+  if (!to.meta.public && !auth.isAuthenticated) {
     next('/login')
   } else if (to.meta.permission && !auth[to.meta.permission]) {
     next('/')
   } else if (to.name === 'Login' && auth.isAuthenticated) {
     next('/')
-  } else if (to.name === 'License' && hasLicense) {
-    next('/login')
   } else {
     next()
   }
