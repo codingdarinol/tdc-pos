@@ -12,7 +12,7 @@ const searchQuery = ref('');
 const salesData = ref([]);
 const inventoryData = ref([]);
 const expensesData = ref([]);
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 const loading = ref(false);
 
 // --- Sales Computed ---

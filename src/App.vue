@@ -256,7 +256,7 @@ function logout() {
             :class="theme.currentThemeId === t.id ? 'ring-2 ring-offset-1 sidebar-theme-active' : 'opacity-60 hover:opacity-100'"
             :style="`--ring-color: ${t.accent}; ring-color: ${t.accent};`">
             <span class="text-lg mb-0.5">{{ t.emoji }}</span>
-            <span class="sidebar-muted">{{ i18n.locale === 'bn' ? t.name : t.name }}</span>
+            <span class="sidebar-muted">{{ t.name }}</span>
           </button>
         </div>
 

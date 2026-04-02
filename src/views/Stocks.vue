@@ -11,7 +11,7 @@ const selectedProduct = ref(null);
 const showViewModal = ref(false);
 
 
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 async function loadSettings() {
     try {
         const settings = await invoke('get_settings');

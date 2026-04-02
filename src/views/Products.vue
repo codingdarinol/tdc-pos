@@ -14,7 +14,7 @@ const products = ref([]);
 const searchQuery = ref("");
 const showModal = ref(false);
 const isEditing = ref(false);
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 
 const form = ref({
   id: null,

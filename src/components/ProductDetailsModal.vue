@@ -5,7 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 const props = defineProps({
     show: Boolean,
     product: Object,
-    currencySymbol: { type: String, default: '৳' }
+    currencySymbol: { type: String, default: 'Rp' }
 });
 
 const emit = defineEmits(['close']);

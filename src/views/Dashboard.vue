@@ -102,7 +102,7 @@ const stats = ref({
   inventory_value: 0, low_stock_count: 0, order_count: 0, product_count: 0
 });
 
-const currencySymbol = ref('৳');
+const currencySymbol = ref('Rp');
 const activeTab = ref('sales'); // 'sales', 'purchases', 'profit'
 
 async function loadStats() {
@@ -397,7 +397,7 @@ onMounted(() => {
         <!-- Header -->
         <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 class="text-xl font-black text-gray-900 flex items-center gap-2">
-            <span>🛡️</span> {{ i18n.t('fraud_checker') || 'Fraud Check / ফ্রড চেক' }}
+            <span>🛡️</span> {{ i18n.t('fraud_checker') }}
           </h2>
           <button @click="showFraudChecker = false"
             class="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100">

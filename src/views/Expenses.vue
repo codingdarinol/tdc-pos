@@ -227,7 +227,7 @@ onMounted(() => {
                     <div>
                         <div class="text-[9px] sm:text-[10px] font-black text-rose-500 uppercase tracking-widest">Total
                             Expenses</div>
-                        <div class="text-xl sm:text-2xl font-black text-rose-800 mt-1">৳{{
+                        <div class="text-xl sm:text-2xl font-black text-rose-800 mt-1">Rp{{
                             totalExpenses.toLocaleString(undefined,
                                 { minimumFractionDigits: 2}) }}</div>
                     </div>
@@ -276,7 +276,7 @@ onMounted(() => {
                             }}</td>
                             <td class="px-5 py-3 font-bold text-gray-800">{{ expense.category }}</td>
                             <td class="px-5 py-3 text-gray-600 text-xs">{{ expense.notes || '—' }}</td>
-                            <td class="px-5 py-3 text-right font-black text-rose-600 text-lg">৳{{
+                            <td class="px-5 py-3 text-right font-black text-rose-600 text-lg">Rp{{
                                 expense.amount.toFixed(2) }}</td>
                             <td class="px-5 py-3 text-right space-x-2">
                                 <button v-if="!auth.isDemo" @click="editExpense(expense)"
@@ -307,7 +307,7 @@ onMounted(() => {
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase tracking-widest mb-1.5">Amount
-                            (৳)</label>
+                            (Rp)</label>
                         <input v-model.number="form.amount" type="number" min="0" step="0.01" placeholder="0.00"
                             class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none transition-all font-black text-rose-600">
                     </div>
